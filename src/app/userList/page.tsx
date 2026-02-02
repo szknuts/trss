@@ -1,11 +1,12 @@
 import Image from "next/image";
 
 export default function UserList() {
+  const myId = 1;
   const users = [
     { id: 1, name: "鈴木 啓心" },
     { id: 2, name: "小菅 啓太" },
-    { id: 3, name: "a" },
-    { id: 4, name: "b" },
+    { id: 3, name: "栃下 藤之" },
+    { id: 4, name: "高村 優姫" },
     { id: 5, name: "c" },
   ];
 
@@ -20,19 +21,21 @@ export default function UserList() {
 
       {/* ユーザーリスト */}
       <div className="px-4 py-2">
-        {users.map((u) => (
-          <div
-            key={u.id}
-            className="bg-white rounded-lg shadow-sm active:bg-slate-100 transition-colors p-3 flex items-center gap-3 border border-slate-200 mb-2"
-          >
-            <img
-              src={`/users/human${u.id}.png`}
-              alt={u.name}
-              className="w-11 h-11 rounded-full object-cover shrink-0"
-            />
-            <p className="font-medium text-slate-800 text-base">{u.name}</p>
-          </div>
-        ))}
+        {users.map((u) =>
+          u.id === myId ? null : (
+            <div
+              key={u.id}
+              className="bg-white rounded-lg shadow-sm active:bg-slate-100 transition-colors p-3 flex items-center gap-3 border border-slate-200 mb-2"
+            >
+              <img
+                src={`/users/human${u.id}.png`}
+                alt={u.name}
+                className="w-11 h-11 rounded-full object-cover shrink-0"
+              />
+              <p className="font-medium text-slate-800 text-base">{u.name}</p>
+            </div>
+          ),
+        )}
       </div>
     </div>
   );
