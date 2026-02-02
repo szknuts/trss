@@ -7,7 +7,7 @@ export default function UserList() {
     { id: 2, name: "小菅 啓太" },
     { id: 3, name: "栃下 藤之" },
     { id: 4, name: "高村 優姫" },
-    { id: 5, name: "c" },
+    { id: 5, name: "水口 尚哉" },
   ];
 
   return (
