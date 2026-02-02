@@ -1,17 +1,34 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## 必要なツール
+
+| ツール | バージョン | 備考 |
+|-------|----------|------|
+| Node.js | v20.x 以上 | LTS推奨 |
+| npm | v10.x 以上 | Node.js に同梱 |
+| Git | v2.40 以上 | |
+
 ## Getting Started
 
-First, run the development server:
+### 1. Node.js のインストール
+
+[nvm](https://github.com/nvm-sh/nvm) を使用する場合：
+
+```bash
+nvm install 20
+nvm use
+```
+
+### 2. 依存関係のインストール
+
+```bash
+npm install
+```
+
+### 3. 開発サーバーの起動
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
