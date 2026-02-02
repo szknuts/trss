@@ -28,7 +28,7 @@ export default function Home() {
           </div>
 
           <Link
-            href="/soukinatesakigamen"
+            href="/userList"
             className="mt-8 w-full max-w-xs rounded-full bg-[#303030] py-4 text-center text-white transition hover:opacity-90"
           >
             送金へ進む
