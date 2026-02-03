@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Link from "next/link";
 
 export default function UserList() {
   const myId = 1;
@@ -23,8 +23,9 @@ export default function UserList() {
       <div className="px-4 py-2">
         {users.map((u) =>
           u.id === myId ? null : (
-            <div
+            <Link
               key={u.id}
+              href={`/transfer/${u.id}`}
               className="bg-white rounded-lg shadow-sm active:bg-slate-100 transition-colors p-3 flex items-center gap-3 border border-slate-200 mb-2"
             >
               <img
@@ -33,7 +34,7 @@ export default function UserList() {
                 className="w-11 h-11 rounded-full object-cover shrink-0"
               />
               <p className="font-medium text-slate-800 text-base">{u.name}</p>
-            </div>
+            </Link>
           ),
         )}
       </div>
