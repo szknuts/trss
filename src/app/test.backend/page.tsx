@@ -5,6 +5,7 @@ import { getAllUsers, getUserById, updateUserBalance } from "@/lib/db/users";
 import type { User } from "@/lib/db/database.type";
 import { executeTransfer } from "@/lib/db/transfers";
 import Section from "@/components/test.backend/section";
+import { createPaymentRequest } from "@/lib/db/paymentRequests";
 
 export default function TestBackendPage() {
   const [data, setData] = useState<User[]>([]);
@@ -119,6 +120,21 @@ export default function TestBackendPage() {
             <button
               className="bg-stone-400 py-1 px1 border border-stone-600 rounded-md"
               onClick={() => sendTransfer("0001", "0002", 100)}
+            >
+              送金
+            </button>
+          )}
+        </div>
+      </Section>
+
+      {/* 支払い依頼を作成する */}
+      <Section title="支払い依頼を作成する">
+        <div>鈴木から0002へ100円送金する</div>
+        <div>
+          {myData && (
+            <button
+              className="bg-stone-400 py-1 px1 border border-stone-600 rounded-md"
+              onClick={() => createPaymentRequest("0001", 100, "うに丼")}
             >
               送金
             </button>
