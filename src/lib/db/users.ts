@@ -57,7 +57,7 @@ export async function updateUserBalance(
   newBalance: number,
 ): Promise<User | null> {
   if (newBalance < 0) {
-    throw new Error("残高不足");
+    throw new Error("残高をマイナスにすることはできません");
   }
 
   const { data, error } = await supabase

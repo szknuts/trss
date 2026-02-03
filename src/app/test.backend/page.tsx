@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { getAllUsers, getUserById, updateUserBalance } from "@/lib/db/users";
 import type { User } from "@/lib/db/database.type";
+import { executeTransfer } from "@/lib/db/transfers";
 
 export default function TestBackendPage() {
   const [data, setData] = useState<User[]>([]);
@@ -51,12 +52,27 @@ export default function TestBackendPage() {
     }
   }
 
+  async function sendTransfer(
+    senderId: string,
+    receiverId: string,
+    amount: number,
+    message?: string,
+  ) {
+    try {
+      await executeTransfer(senderId, receiverId, amount, message);
+    } catch (error) {
+      console.error("送金エラー:", error);
+      alert("送金に失敗しました");
+    }
+  }
+
   if (isLoading) {
     return <div>読み込み中...</div>;
   }
 
   return (
     <div>
+      {/* 全ユーザー情報 */}
       <div>{JSON.stringify(data)}</div>
 
       <div className="flex flex-col bg-stone-200">
@@ -67,18 +83,35 @@ export default function TestBackendPage() {
         ))}
       </div>
 
+      {/* 自分の情報 */}
       <div>
         <div>名前：{myData?.name}</div>
         <div>残高：{myBalance}円</div>
       </div>
 
-      <div>
+      {/* 残高を更新する */}
+      <div className="flex flex-col bg-stone-200">
         <div>鈴木の残高を100円増やす</div>
         <div>
           {myData && (
             <button
               className="bg-stone-400 py-1 px1 border border-stone-600 rounded-md"
               onClick={handleUpdateBalance}
+            >
+              送金
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* 送金する */}
+      <div>
+        <div>鈴木から0002へ100円送金する</div>
+        <div>
+          {myData && (
+            <button
+              className="bg-stone-400 py-1 px1 border border-stone-600 rounded-md"
+              onClick={() => sendTransfer("0001", "0002", 100)}
             >
               送金
             </button>
