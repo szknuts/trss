@@ -21,6 +21,7 @@ export default function TransferPage() {
 
   const recipient = users[recipientId] || { name: "不明", icon: "" };
   const [amount, setAmount] = useState("");
+  const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const numAmount = Number(amount);
@@ -32,7 +33,13 @@ export default function TransferPage() {
 
     setIsLoading(true);
     try {
-      await executeTransfer(myId, recipientId, numAmount);
+      const trimmedMessage = message.trim();
+      await executeTransfer(
+        myId,
+        recipientId,
+        numAmount,
+        trimmedMessage === "" ? undefined : trimmedMessage,
+      );
       router.push("/transfer/complete");
     } catch (error) {
       console.error("送金処理エラー:", error);
@@ -86,6 +93,16 @@ export default function TransferPage() {
             <p className="text-red-500 text-sm">※送金上限額を超えています。</p>
           )}
         </div>
+
+        {/* メッセージ入力 */}
+        <p className="text-sm text-slate-500 mb-2">メッセージ (任意)</p>
+        <textarea
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          maxLength={120}
+          placeholder="メッセージを入力 (最大120文字)"
+          className="w-full border border-slate-300 rounded-lg px-4 py-3 text-base resize-none focus:outline-none focus:ring-2 focus:ring-slate-400 min-h-[96px] mb-6"
+        />
 
         {/* 送金ボタン */}
         <button
