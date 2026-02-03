@@ -53,3 +53,26 @@ export async function getAllPaymentRequests(): Promise<PaymentRequest[]> {
 
   return data || [];
 }
+
+/**
+ * @description 支払い依頼を削除
+ * @param id - 支払い依頼ID
+ * @returns 削除された支払い依頼
+ */
+export async function deletePaymentRequest(
+  id: string,
+): Promise<PaymentRequest> {
+  const { data, error } = await supabase
+    .from("payment_requests")
+    .delete()
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error deleting payment request:", error);
+    throw error;
+  }
+
+  return data;
+}

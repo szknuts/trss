@@ -7,6 +7,7 @@ import { executeTransfer } from "@/lib/db/transfers";
 import Section from "@/components/test.backend/section";
 import {
   createPaymentRequest,
+  deletePaymentRequest,
   getAllPaymentRequests,
 } from "@/lib/db/paymentRequests";
 import type { PaymentRequest } from "@/lib/db/database.type";
@@ -17,6 +18,7 @@ export default function TestBackendPage() {
   const [myBalance, setMyBalance] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [paymentRequests, setPaymentRequests] = useState<PaymentRequest[]>([]);
+  const [deleteId, setDeleteId] = useState<string>("");
 
   // データを取得
   useEffect(() => {
@@ -25,6 +27,8 @@ export default function TestBackendPage() {
         const allUsers = await getAllUsers();
         const user = await getUserById("0001");
         const payments = await getAllPaymentRequests();
+
+        console.log("取得した支払い依頼:", payments);
 
         setData(allUsers);
         setMyData(user);
@@ -90,6 +94,30 @@ export default function TestBackendPage() {
     } catch (error) {
       console.error("支払い依頼作成エラー:", error);
       alert("支払い依頼の作成に失敗しました");
+    }
+  }
+
+  // 支払い依頼を削除する
+  async function handleDeletePaymentRequest() {
+    if (!deleteId.trim()) {
+      alert("削除するIDを入力してください");
+      return;
+    }
+
+    try {
+      await deletePaymentRequest(deleteId);
+
+      // データを再取得して最新の状態を表示
+      const updatedPaymentRequests = await getAllPaymentRequests();
+      setPaymentRequests(updatedPaymentRequests);
+
+      // 入力フィールドをクリア
+      setDeleteId("");
+
+      alert("支払い依頼を削除しました");
+    } catch (error) {
+      console.error("支払い依頼削除エラー:", error);
+      alert("支払い依頼の削除に失敗しました");
     }
   }
 
@@ -175,6 +203,26 @@ export default function TestBackendPage() {
             {paymentRequest.message} <br />
           </div>
         ))}
+      </Section>
+
+      {/* 支払い依頼を削除する */}
+      <Section title="支払い依頼を削除する">
+        <div>削除する支払い依頼のIDを入力してください</div>
+        <div className="flex gap-2 items-center mt-2">
+          <input
+            type="text"
+            value={deleteId}
+            onChange={(e) => setDeleteId(e.target.value)}
+            placeholder="支払い依頼ID"
+            className="border border-stone-400 px-2 py-1 rounded-md"
+          />
+          <button
+            className="bg-stone-400 py-1 px1 border border-stone-600 rounded-md"
+            onClick={handleDeletePaymentRequest}
+          >
+            削除
+          </button>
+        </div>
       </Section>
     </div>
   );
