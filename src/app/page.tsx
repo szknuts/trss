@@ -1,11 +1,28 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { getUserById } from "@/lib/db/users";
+import { useUser } from "@/context/UserContext";
 
-export default  async function Home() {
-  const user = await getUserById("0001");
+export default function Home() {
+  const { userId } = useUser();
+  const router = useRouter();
+  const [user, setUser] = useState<any | null>(null);
 
-  if (!user) {
-    return <div>ユーザーが見つかりません</div>;
+  useEffect(() => {
+    // ★ ログインしていなければ login へ
+    if (!userId) {
+      router.replace("/login");
+      return;
+    }
+
+    getUserById(userId).then(setUser);
+  }, [userId, router]);
+
+  if (!userId || !user) {
+    return null; // 画面チラつき防止
   }
 
   return (
@@ -15,22 +32,22 @@ export default  async function Home() {
           <div className="flex h-24 w-24 items-center justify-center rounded-full bg-[#ded8cf] text-3xl font-semibold text-[#2f2b28]">
             <span>{user.name.charAt(0)}</span>
           </div>
+
           <p className="mt-6 text-xl font-semibold tracking-wide text-[#1f1f1f]">
             {user.name}
           </p>
 
-          <div className="mt-6 flex w-full max-w-xs flex-col gap-1 text-left text-sm text-[#6b6b6b]">
-            <div className="flex items-center justify-between">
-              <div className="mt-6 flex w-full max-w-xs justify-center text-sm text-[#6b6b6b]">
-                <span>社員番号 : {user.id}</span>
-              </div>
-              {/*<span>{user.balance}円</span>*/}
-            </div>
+          <div className="mt-6 flex w-full max-w-xs justify-center text-sm text-[#6b6b6b]">
+            <span>社員番号 : {user.id}</span>
           </div>
 
           <div className="mt-10 w-full max-w-xs rounded-[26px] border border-[#e6e2dc] bg-white px-6 py-8 text-center">
-            <p className="text-sm uppercase tracking-[0.4em] text-[#a59f95]">残高 BALANCE</p>
-            <p className="mt-4 text-4xl font-semibold text-[#303030]">{user.balance}円</p>
+            <p className="text-sm uppercase tracking-[0.4em] text-[#a59f95]">
+              残高 BALANCE
+            </p>
+            <p className="mt-4 text-4xl font-semibold text-[#303030]">
+              {user.balance}円
+            </p>
           </div>
 
           <Link
@@ -39,9 +56,7 @@ export default  async function Home() {
           >
             送金へ進む
           </Link>
-
         </div>
-        
       </section>
     </div>
   );
