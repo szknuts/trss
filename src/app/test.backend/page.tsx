@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { getAllUsers, getUserById, updateUserBalance } from "@/lib/db/users";
 import type { User } from "@/lib/db/database.type";
 import { executeTransfer } from "@/lib/db/transfers";
+import Section from "@/components/test.backend/section";
 
 export default function TestBackendPage() {
   const [data, setData] = useState<User[]>([]);
@@ -73,26 +74,30 @@ export default function TestBackendPage() {
   return (
     <div className="flex flex-col gap-2">
       {/* 全ユーザー情報 */}
-      <div className="border-b border-stone-400 pb-2 ">
-        {JSON.stringify(data)}
-      </div>
-
-      <div className="border-b border-stone-400  pb-2">
+      <Section title="全ユーザー情報">
         {data.map((user) => (
           <div key={user.id}>
             {user.id} : {user.name} <br />
           </div>
         ))}
-      </div>
+      </Section>
+
+      <Section title="ユーザー情報表示">
+        {data.map((user) => (
+          <div key={user.id}>
+            {user.id} : {user.name} <br />
+          </div>
+        ))}
+      </Section>
 
       {/* 自分の情報 */}
-      <div className="border-b border-stone-400 pb-2">
+      <Section title="自分の情報">
         <div>名前：{myData?.name}</div>
         <div>残高：{myBalance}円</div>
-      </div>
+      </Section>
 
       {/* 残高を更新する */}
-      <div className="border-b border-stone-400 pb-2">
+      <Section title="残高を更新する">
         <div>鈴木の残高を100円増やす</div>
         <div>
           {myData && (
@@ -104,10 +109,10 @@ export default function TestBackendPage() {
             </button>
           )}
         </div>
-      </div>
+      </Section>
 
       {/* 送金する */}
-      <div className="border-b border-stone-400 pb-2">
+      <Section title="送金する">
         <div>鈴木から0002へ100円送金する</div>
         <div>
           {myData && (
@@ -119,7 +124,7 @@ export default function TestBackendPage() {
             </button>
           )}
         </div>
-      </div>
+      </Section>
     </div>
   );
 }
