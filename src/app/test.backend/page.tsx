@@ -71,26 +71,28 @@ export default function TestBackendPage() {
   }
 
   return (
-    <div>
+    <div className="flex flex-col gap-2">
       {/* 全ユーザー情報 */}
-      <div>{JSON.stringify(data)}</div>
+      <div className="border-b border-stone-400 pb-2 ">
+        {JSON.stringify(data)}
+      </div>
 
-      <div className="flex flex-col bg-stone-200">
+      <div className="border-b border-stone-400  pb-2">
         {data.map((user) => (
           <div key={user.id}>
-            {user.id} : {user.name}
+            {user.id} : {user.name} <br />
           </div>
         ))}
       </div>
 
       {/* 自分の情報 */}
-      <div>
+      <div className="border-b border-stone-400 pb-2">
         <div>名前：{myData?.name}</div>
         <div>残高：{myBalance}円</div>
       </div>
 
       {/* 残高を更新する */}
-      <div className="flex flex-col bg-stone-200">
+      <div className="border-b border-stone-400 pb-2">
         <div>鈴木の残高を100円増やす</div>
         <div>
           {myData && (
@@ -105,7 +107,7 @@ export default function TestBackendPage() {
       </div>
 
       {/* 送金する */}
-      <div>
+      <div className="border-b border-stone-400 pb-2">
         <div>鈴木から0002へ100円送金する</div>
         <div>
           {myData && (
