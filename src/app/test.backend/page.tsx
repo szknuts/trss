@@ -5,13 +5,18 @@ import { getAllUsers, getUserById, updateUserBalance } from "@/lib/db/users";
 import type { User } from "@/lib/db/database.type";
 import { executeTransfer } from "@/lib/db/transfers";
 import Section from "@/components/test.backend/section";
-import { createPaymentRequest } from "@/lib/db/paymentRequests";
+import {
+  createPaymentRequest,
+  getAllPaymentRequests,
+} from "@/lib/db/paymentRequests";
+import type { PaymentRequest } from "@/lib/db/database.type";
 
 export default function TestBackendPage() {
   const [data, setData] = useState<User[]>([]);
   const [myData, setMyData] = useState<User | null>(null);
   const [myBalance, setMyBalance] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [paymentRequests, setPaymentRequests] = useState<PaymentRequest[]>([]);
 
   // データを取得
   useEffect(() => {
@@ -19,10 +24,12 @@ export default function TestBackendPage() {
       try {
         const allUsers = await getAllUsers();
         const user = await getUserById("0001");
+        const payments = await getAllPaymentRequests();
 
         setData(allUsers);
         setMyData(user);
         setMyBalance(user?.balance || 0);
+        setPaymentRequests(payments);
       } catch (error) {
         console.error("データ取得エラー:", error);
       } finally {
@@ -65,6 +72,24 @@ export default function TestBackendPage() {
     } catch (error) {
       console.error("送金エラー:", error);
       alert("送金に失敗しました");
+    }
+  }
+
+  // 支払い依頼を作成する
+  async function handleCreatePaymentRequest(
+    requesterId: string,
+    amount: number,
+    message?: string,
+  ) {
+    try {
+      await createPaymentRequest(requesterId, amount, message);
+
+      // データを再取得して最新の状態を表示
+      const updatedPaymentRequests = await getAllPaymentRequests();
+      setPaymentRequests(updatedPaymentRequests);
+    } catch (error) {
+      console.error("支払い依頼作成エラー:", error);
+      alert("支払い依頼の作成に失敗しました");
     }
   }
 
@@ -134,12 +159,22 @@ export default function TestBackendPage() {
           {myData && (
             <button
               className="bg-stone-400 py-1 px1 border border-stone-600 rounded-md"
-              onClick={() => createPaymentRequest("0001", 100, "うに丼")}
+              onClick={() => handleCreatePaymentRequest("0001", 100, "うに丼")}
             >
-              送金
+              作成
             </button>
           )}
         </div>
+      </Section>
+
+      {/* 支払い依頼一覧 */}
+      <Section title="支払い依頼一覧">
+        {paymentRequests.map((paymentRequest) => (
+          <div key={paymentRequest.id}>
+            {paymentRequest.id} : {paymentRequest.amount} :{" "}
+            {paymentRequest.message} <br />
+          </div>
+        ))}
       </Section>
     </div>
   );

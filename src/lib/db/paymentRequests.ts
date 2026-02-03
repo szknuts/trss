@@ -35,3 +35,21 @@ export async function createPaymentRequest(
 
   return data;
 }
+
+/**
+ * @description すべての支払い依頼を取得
+ * @returns 支払い依頼配列
+ */
+export async function getAllPaymentRequests(): Promise<PaymentRequest[]> {
+  const { data, error } = await supabase
+    .from("payment_requests")
+    .select("*")
+    .order("id", { ascending: true });
+
+  if (error) {
+    console.error("Error fetching payment requests:", error);
+    throw error;
+  }
+
+  return data || [];
+}
