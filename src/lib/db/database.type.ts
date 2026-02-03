@@ -29,16 +29,16 @@ export interface Transfer {
 /**
  * @description payment_requestsテーブルの状態
  * - pending: 待機中
- * - accepted: 承認
  * - rejected: 却下
+ * - paid: 支払い済み
  */
-export type PaymentRequestState = "pending" | "accepted" | "rejected";
+export type PaymentRequestState = "pending" | "rejected" | "paid";
 
 /**
  * @description payment_requestsテーブルの型定義
  */
 export interface PaymentRequest {
-  id: string; // 支払い依頼ID
+  id: string; // 請求ID
   requester_id: string; // 請求したユーザーID
   payer_id: string | null; // 支払うユーザーID（まだ誰も決まっていない場合はnull）
   amount: number; // 送金額

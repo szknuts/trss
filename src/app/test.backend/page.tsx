@@ -4,11 +4,13 @@ import { useEffect, useState } from "react";
 import { getAllUsers, getUserById, updateUserBalance } from "@/lib/db/users";
 import type { User } from "@/lib/db/database.type";
 import { executeTransfer } from "@/lib/db/transfers";
+import { supabase } from "@/lib/db/supabase";
 import Section from "@/components/test.backend/section";
 import {
   createPaymentRequest,
   deletePaymentRequest,
   getAllPaymentRequests,
+  payPaymentRequest,
 } from "@/lib/db/paymentRequests";
 import type { PaymentRequest } from "@/lib/db/database.type";
 
@@ -19,6 +21,8 @@ export default function TestBackendPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [paymentRequests, setPaymentRequests] = useState<PaymentRequest[]>([]);
   const [deleteId, setDeleteId] = useState<string>("");
+  const [payerId, setPayerId] = useState<string>("");
+  const [paymentId, setPaymentId] = useState<string>("");
 
   // データを取得
   useEffect(() => {
@@ -27,8 +31,6 @@ export default function TestBackendPage() {
         const allUsers = await getAllUsers();
         const user = await getUserById("0001");
         const payments = await getAllPaymentRequests();
-
-        console.log("取得した支払い依頼:", payments);
 
         setData(allUsers);
         setMyData(user);
@@ -50,7 +52,7 @@ export default function TestBackendPage() {
       const newBalance = myBalance + 100;
       await updateUserBalance("0001", newBalance);
 
-      // 状態を更新（UIに即座に反映）
+      // 状態を更新
       setMyBalance(newBalance);
 
       // データを再取得して最新の状態を確認
@@ -65,6 +67,7 @@ export default function TestBackendPage() {
     }
   }
 
+  // 送金する
   async function sendTransfer(
     senderId: string,
     receiverId: string,
@@ -79,7 +82,7 @@ export default function TestBackendPage() {
     }
   }
 
-  // 支払い依頼を作成する
+  // 請求を作成する
   async function handleCreatePaymentRequest(
     requesterId: string,
     amount: number,
@@ -97,7 +100,7 @@ export default function TestBackendPage() {
     }
   }
 
-  // 支払い依頼を削除する
+  // 請求を削除する
   async function handleDeletePaymentRequest() {
     if (!deleteId.trim()) {
       alert("削除するIDを入力してください");
@@ -121,6 +124,53 @@ export default function TestBackendPage() {
     }
   }
 
+  // 請求を支払う
+  async function handlePayPaymentRequest() {
+    if (!payerId.trim()) {
+      alert("支払い元のユーザーIDを入力してください");
+      return;
+    }
+
+    if (!paymentId.trim()) {
+      alert("支払い依頼IDを入力してください");
+      return;
+    }
+
+    try {
+      // 請求を取得して確認
+      const { data: paymentRequest, error: fetchError } = await supabase
+        .from("payment_requests")
+        .select("*")
+        .eq("id", paymentId)
+        .single();
+
+      if (fetchError) {
+        console.error("請求の取得エラー:", fetchError);
+        throw new Error(`請求が見つかりません: ${fetchError.message}`);
+      }
+
+      if (!paymentRequest) {
+        throw new Error("請求が見つかりません");
+      }
+
+      // 支払いを実行
+      await payPaymentRequest(paymentId, payerId);
+
+      // データを再取得して最新の状態を表示
+      const updatedPaymentRequests = await getAllPaymentRequests();
+      setPaymentRequests(updatedPaymentRequests);
+
+      // 入力フィールドをクリア
+      setPayerId("");
+      setPaymentId("");
+
+      alert("請求を支払いました");
+    } catch (error) {
+      console.error("請求支払いエラー:", error);
+      alert("請求の支払いに失敗しました: " + (error as Error).message);
+    }
+  }
+
   if (isLoading) {
     return <div>読み込み中...</div>;
   }
@@ -128,18 +178,12 @@ export default function TestBackendPage() {
   return (
     <div className="flex flex-col gap-2">
       {/* 全ユーザー情報 */}
-      <Section title="全ユーザー情報">
-        {data.map((user) => (
-          <div key={user.id}>
-            {user.id} : {user.name} <br />
-          </div>
-        ))}
-      </Section>
+      <Section title="全ユーザー情報">{JSON.stringify(data)}</Section>
 
       <Section title="ユーザー情報表示">
         {data.map((user) => (
           <div key={user.id}>
-            {user.id} : {user.name} <br />
+            {user.id} : {user.name} : {user.balance}円<br />
           </div>
         ))}
       </Section>
@@ -181,8 +225,8 @@ export default function TestBackendPage() {
       </Section>
 
       {/* 支払い依頼を作成する */}
-      <Section title="支払い依頼を作成する">
-        <div>鈴木から0002へ100円送金する</div>
+      <Section title="請求を作成する">
+        <div>鈴木が200円の請求を作成する</div>
         <div>
           {myData && (
             <button
@@ -195,19 +239,22 @@ export default function TestBackendPage() {
         </div>
       </Section>
 
-      {/* 支払い依頼一覧 */}
-      <Section title="支払い依頼一覧">
+      {/* 請求一覧 */}
+      <Section title="請求一覧">
         {paymentRequests.map((paymentRequest) => (
           <div key={paymentRequest.id}>
-            {paymentRequest.id} : {paymentRequest.amount} :{" "}
-            {paymentRequest.message} <br />
+            {paymentRequest.id}
+            <br />
+            {paymentRequest.amount} | {paymentRequest.message} |{" "}
+            {paymentRequest.state}
+            <br />
           </div>
         ))}
       </Section>
 
-      {/* 支払い依頼を削除する */}
-      <Section title="支払い依頼を削除する">
-        <div>削除する支払い依頼のIDを入力してください</div>
+      {/* 請求を削除する */}
+      <Section title="請求を削除する">
+        <div>削除する請求のIDを入力してください</div>
         <div className="flex gap-2 items-center mt-2">
           <input
             type="text"
@@ -221,6 +268,33 @@ export default function TestBackendPage() {
             onClick={handleDeletePaymentRequest}
           >
             削除
+          </button>
+        </div>
+      </Section>
+
+      {/* 請求を支払う */}
+      <Section title="請求を支払う">
+        <div>支払い元のユーザーIDと請求IDを入力してください</div>
+        <div className="flex flex-col gap-2 mt-2">
+          <input
+            type="text"
+            value={payerId}
+            onChange={(e) => setPayerId(e.target.value)}
+            placeholder="支払うユーザーID"
+            className="border border-stone-400 px-2 py-1 rounded-md"
+          />
+          <input
+            type="text"
+            value={paymentId}
+            onChange={(e) => setPaymentId(e.target.value)}
+            placeholder="請求ID"
+            className="border border-stone-400 px-2 py-1 rounded-md"
+          />
+          <button
+            className="bg-stone-400 py-1 px1 border border-stone-600 rounded-md"
+            onClick={handlePayPaymentRequest}
+          >
+            支払いを実行
           </button>
         </div>
       </Section>
