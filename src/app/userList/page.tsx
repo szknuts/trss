@@ -1,13 +1,13 @@
 import Link from "next/link";
 
 export default function UserList() {
-  const myId = 1;
+  const myId = "0001";
   const users = [
-    { id: 1, name: "鈴木 啓心" },
-    { id: 2, name: "小菅 啓太" },
-    { id: 3, name: "栃下 藤之" },
-    { id: 4, name: "高村 優姫" },
-    { id: 5, name: "水口 尚哉" },
+    { id: "0001", name: "鈴木 啓心", icon: "/users/human1.png" },
+    { id: "0002", name: "小菅 啓太", icon: "/users/human2.png" },
+    { id: "0003", name: "栃下 藤之", icon: "/users/human3.png" },
+    { id: "0004", name: "高村 優姫", icon: "/users/human4.png" },
+    { id: "0005", name: "水口 尚哉", icon: "/users/human5.png" },
   ];
 
   return (
@@ -29,7 +29,7 @@ export default function UserList() {
               className="bg-white rounded-lg shadow-sm active:bg-slate-100 transition-colors p-3 flex items-center gap-3 border border-slate-200 mb-2"
             >
               <img
-                src={`/users/human${u.id}.png`}
+                src={u.icon}
                 alt={u.name}
                 className="w-11 h-11 rounded-full object-cover shrink-0"
               />
