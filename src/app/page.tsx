@@ -10,6 +10,8 @@ export default function Home() {
   const { userId } = useUser();
   const router = useRouter();
   const [user, setUser] = useState<any | null>(null);
+  const [showUserList, setShowUserList] = useState(false); // 一覧表示フラグ
+  const [clickCount, setClickCount] = useState(0); // クリック回数
 
   useEffect(() => {
     // ★ ログインしていなければ login へ
@@ -17,19 +19,36 @@ export default function Home() {
       router.replace("/login");
       return;
     }
-
+    if (clickCount > 0) {
+      const timer = setTimeout(() => setClickCount(0), 2000);
+      return () => clearTimeout(timer);
+    }
     getUserById(userId).then(setUser);
-  }, [userId, router]);
+  }, [userId, router, clickCount]);
 
   if (!userId || !user) {
     return null; // 画面チラつき防止
   }
 
+  // コマンド: 顔写真を10回クリック
+  const handleFaceClick = () => {
+    const newCount = clickCount + 1;
+    setClickCount(newCount);
+
+    if (newCount >= 10) {
+      setShowUserList(!showUserList);
+      setClickCount(0);
+    }
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#dcd9d3] px-4 py-10 font-sans text-[#1f1f1f]">
       <section className="flex h-[932px] w-[430px] max-w-full flex-col items-center rounded-[40px] bg-[#f4f2ed] px-10 pb-16 pt-20 text-center">
         <div className="flex flex-1 flex-col items-center">
-          <div className="flex h-24 w-24 items-center rounded-full bg-[#ded8cf] text-3xl text-[#2f2b28]">
+          <div
+            className="flex h-24 w-24 items-center rounded-full bg-[#ded8cf] text-3xl text-[#2f2b28]"
+            onClick={handleFaceClick}
+          >
             <img
               src={`/users/${user.icon_url}`}
               alt="icon"
@@ -73,12 +92,14 @@ export default function Home() {
           >
             請求一覧へ
           </Link>
-          <Link
-            href="/test.backend"
-            className="mt-2 w-full max-w-xs rounded-full bg-[#303030] py-4 text-center text-white transition hover:opacity-90"
-          >
-            テスト画面へ
-          </Link>
+          {showUserList && (
+            <Link
+              href="/test.backend"
+              className="mt-2 w-full max-w-xs rounded-full bg-[#303030] py-4 text-center text-white transition hover:opacity-90"
+            >
+              テスト画面へ
+            </Link>
+          )}
         </div>
       </section>
     </div>
