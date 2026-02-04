@@ -298,6 +298,24 @@ export default function TestBackendPage() {
           </button>
         </div>
       </Section>
+
+      {/* 請求されたユーザーIDから請求を取得 */}
+      <Section title="請求されたユーザーID(0002)から請求を取得">
+        {paymentRequests.map((paymentRequest) => (
+          <div key={paymentRequest.id}>
+            {paymentRequest.payer_id == "0002" && (
+              <div>
+                {paymentRequest.id}
+                <br />
+                {paymentRequest.amount} | {paymentRequest.message} |{" "}
+                {paymentRequest.state}
+                <br />
+                被請求者: {paymentRequest.payer_id}
+              </div>
+            )}
+          </div>
+        ))}
+      </Section>
     </div>
   );
 }
