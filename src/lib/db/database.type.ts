@@ -44,5 +44,6 @@ export interface PaymentRequest {
   amount: number; // 送金額
   message?: string; // メッセージ（オプショナル）
   created_at: string; // 作成日時
+  due_date: string; // 期日
   state: PaymentRequestState; // 状態
 }
