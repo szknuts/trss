@@ -1,6 +1,6 @@
 /**
  * @file src/lib/db/paymentRequests.ts
- * @description 支払い依頼に関するデータベース操作
+ * @description 請求に関するデータベース操作
  */
 
 import { supabase } from "@/lib/db/supabase";
