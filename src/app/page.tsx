@@ -73,12 +73,6 @@ export default function Home() {
           >
             請求一覧へ
           </Link>
-          <Link
-            href="/test.backend"
-            className="mt-2 w-full max-w-xs rounded-full bg-[#303030] py-4 text-center text-white transition hover:opacity-90"
-          >
-            テスト画面へ
-          </Link>
         </div>
       </section>
     </div>
