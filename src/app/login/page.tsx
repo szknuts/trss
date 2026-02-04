@@ -1,13 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useUser } from "@/context/UserContext";
 import { getUserById, getAllUsers } from "@/lib/db/users";
 import type { User } from "@/lib/db/database.type";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get("redirect");
+
   const { setUserId } = useUser();
 
   const [id, setId] = useState("");
@@ -18,7 +21,7 @@ export default function LoginPage() {
   const [showUserList, setShowUserList] = useState(false); // 一覧表示フラグ
   const [clickCount, setClickCount] = useState(0); // クリック回数
 
-  // マウント時にユーザー一覧を取得
+  // ユーザー一覧取得
   useEffect(() => {
     async function fetchUsers() {
       try {
@@ -30,7 +33,6 @@ export default function LoginPage() {
         setIsLoading(false);
       }
     }
-
     fetchUsers();
   }, []);
 
@@ -56,12 +58,16 @@ export default function LoginPage() {
       return;
     }
 
-    // ログイン成功 → グローバルにIDを保存
+    // ログイン成功
     setUserId(user.id);
-    router.replace("/");
+
+    if (redirect) {
+      router.replace(decodeURIComponent(redirect));
+    } else {
+      router.replace("/");
+    }
   };
 
-  // ユーザーを選択
   const handleSelectUser = (userId: string, userName: string) => {
     setId(userId);
     setName(userName);
@@ -150,14 +156,19 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {error && <p className="mt-4 text-sm text-red-500">{error}</p>}
+        {error && (
+          <p className="mt-4 text-sm text-red-500">
+            {error}
+          </p>
+        )}
 
         <button
           onClick={handleLogin}
-          className="mt-6 w-full max-w-xs rounded-full bg-[#303030] py-4 text-white transition hover:opacity-90"
+          className="mt-6 w-full max-w-xs rounded-full bg-[#303030] py-4 text-white"
         >
           ログイン
         </button>
+
       </section>
     </div>
   );
