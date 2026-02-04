@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { createPaymentRequest } from "@/lib/db/paymentRequests";
+
+
 
 export default function InvoicePage() {
   const [amount, setAmount] = useState("");
@@ -10,23 +13,29 @@ export default function InvoicePage() {
 
   const [createdLink, setCreatedLink] = useState<string | null>(null);
 
-  const createdBy = "keita";
+  const createdBy = "";
   const createdAt = new Date().toISOString();
 
   const isDisabled = !amount || Number(amount) <= 0;
 
-  const handleCreateLink = () => {
-    const params = new URLSearchParams({
-      amount,
+  const handleCreateLink = async () => {
+  try {
+    // 🔹 DBに請求を作成
+    const paymentRequest = await createPaymentRequest(
+      "0001", // ← requesterId（あとでログインユーザーにする）
+      Number(amount),
       message,
-      createdBy,
-      createdAt,
-    });
+    );
 
-    const link = `${window.location.origin}/link_to_pay?${params.toString()}`;
+    // 🔹 作成されたIDだけをURLに載せる
+    const link = `${window.location.origin}/link_to_pay?paymentId=${paymentRequest.id}`;
     setCreatedLink(link);
+  } catch (e) {
+    console.error(e);
+    alert("請求リンクの作成に失敗しました");
+  }
+};
 
-  };
 
   const handleCopy = async () => {
     if (!createdLink) return;
