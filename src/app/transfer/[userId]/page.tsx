@@ -1,49 +1,81 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useUser } from "@/context/UserContext";
+import { getUserById } from "@/lib/db/users";
 import { executeTransfer } from "@/lib/db/transfers";
+import type { User } from "@/lib/db/database.type";
+
+const resolveIconUrl = (iconUrl: string | null) => {
+  if (!iconUrl) return "/users/human1.png";
+  if (iconUrl.startsWith("/")) return iconUrl;
+  return `/users/${iconUrl}`;
+};
 
 export default function TransferPage() {
   const params = useParams();
   const router = useRouter();
+  const { userId } = useUser();
   const recipientId = params.userId as string;
 
-  // 仮のデータ（後でAPIから取得）
-  const myId = "0001";
-  const myBalance = 50000;
-  const users: { [key: string]: { name: string; icon: string } } = {
-    "0002": { name: "小菅 啓太", icon: "/users/human2.png" },
-    "0003": { name: "栃下 藤之", icon: "/users/human3.png" },
-    "0004": { name: "高村 優姫", icon: "/users/human4.png" },
-    "0005": { name: "水口 尚哉", icon: "/users/human5.png" },
-  };
+  const [me, setMe] = useState<User | null>(null);
+  const [recipient, setRecipient] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const recipient = users[recipientId] || { name: "不明", icon: "" };
   const [amount, setAmount] = useState("");
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  // 直叩き防止
+  useEffect(() => {
+    if (!userId) router.replace("/login");
+  }, [userId, router]);
+
+  // DBからユーザー取得
+  useEffect(() => {
+    const fetchUsers = async () => {
+      if (!userId) return;
+
+      const [meData, recipientData] = await Promise.all([
+        getUserById(userId),
+        getUserById(recipientId),
+      ]);
+
+      if (!meData || !recipientData) {
+        router.replace("/");
+        return;
+      }
+
+      setMe(meData);
+      setRecipient(recipientData);
+      setLoading(false);
+    };
+
+    fetchUsers();
+  }, [userId, recipientId, router]);
+
+  if (!userId || loading || !me || !recipient) return null;
+
   const numAmount = Number(amount);
-  const isOverLimit = numAmount > myBalance;
-  const isValidAmount = amount !== "" && numAmount > 0 && numAmount <= myBalance;
+  const isOverLimit = numAmount > me.balance;
+  const isValidAmount =
+    amount !== "" && numAmount > 0 && numAmount <= me.balance;
 
   const handleTransfer = async () => {
     if (!isValidAmount || isLoading) return;
 
     setIsLoading(true);
     try {
-      const trimmedMessage = message.trim();
       await executeTransfer(
-        myId,
-        recipientId,
+        me.id,
+        recipient.id,
         numAmount,
-        trimmedMessage === "" ? undefined : trimmedMessage,
+        message.trim() || undefined
       );
       router.push("/transfer/complete");
-    } catch (error) {
-      console.error("送金処理エラー:", error);
-      alert("送金処理に失敗しました");
+    } catch (e) {
+      alert("送金に失敗しました");
     } finally {
       setIsLoading(false);
     }
@@ -51,23 +83,27 @@ export default function TransferPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center px-4 py-8">
-      {/* 送金先 */}
       <div className="w-full max-w-sm">
+        {/* 送金先 */}
         <p className="text-sm text-slate-500 mb-2">送金先</p>
         <div className="flex items-center gap-3 mb-6">
           <img
-            src={recipient.icon}
+            src={resolveIconUrl(recipient.icon_url)}
             alt={recipient.name}
             className="w-12 h-12 rounded-full object-cover"
           />
-          <p className="font-medium text-slate-800 text-lg">{recipient.name}</p>
+          <p className="font-medium text-slate-800 text-lg">
+            {recipient.name}
+          </p>
         </div>
 
-        {/* 送金上限額 */}
-        <p className="text-sm text-slate-500 mb-1">送金上限額</p>
+        {/* 残高 */}
+        <p className="text-sm text-slate-500 mb-1">残高</p>
         <p className="text-2xl font-semibold text-slate-800 mb-6">
-          {myBalance.toLocaleString()}円
+          {me.balance.toLocaleString()}円
         </p>
+
+        {/* ===== ここから指定UIを結合 ===== */}
 
         {/* 送金金額入力 */}
         <p className="text-sm text-slate-500 mb-2">送金金額</p>
@@ -78,11 +114,14 @@ export default function TransferPage() {
             onChange={(e) => setAmount(e.target.value)}
             min="0"
             placeholder="金額"
-            className={`flex-1 border rounded-lg px-4 py-3 text-lg focus:outline-none focus:ring-2 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
-              isOverLimit
-                ? "border-red-400 focus:ring-red-300"
-                : "border-slate-300 focus:ring-slate-400"
-            }`}
+            className={`flex-1 border rounded-lg px-4 py-3 text-lg focus:outline-none focus:ring-2
+              [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none
+              [&::-webkit-inner-spin-button]:appearance-none
+              ${
+                isOverLimit
+                  ? "border-red-400 focus:ring-red-300"
+                  : "border-slate-300 focus:ring-slate-400"
+              }`}
           />
           <span className="text-slate-600">円</span>
         </div>
@@ -90,7 +129,9 @@ export default function TransferPage() {
         {/* エラーメッセージ */}
         <div className="h-6 mb-4">
           {isOverLimit && (
-            <p className="text-red-500 text-sm">※送金上限額を超えています。</p>
+            <p className="text-red-500 text-sm">
+              ※送金上限額を超えています。
+            </p>
           )}
         </div>
 
