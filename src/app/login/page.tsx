@@ -15,6 +15,8 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showUserList, setShowUserList] = useState(false); // 一覧表示フラグ
+  const [clickCount, setClickCount] = useState(0); // クリック回数
 
   // マウント時にユーザー一覧を取得
   useEffect(() => {
@@ -31,6 +33,14 @@ export default function LoginPage() {
 
     fetchUsers();
   }, []);
+
+  // クリック回数をリセットするタイマー
+  useEffect(() => {
+    if (clickCount > 0) {
+      const timer = setTimeout(() => setClickCount(0), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [clickCount]);
 
   const handleLogin = async () => {
     setError("");
@@ -58,53 +68,70 @@ export default function LoginPage() {
     setError("");
   };
 
+  // コマンド: タイトルを10回クリック
+  const handleTitleClick = () => {
+    const newCount = clickCount + 1;
+    setClickCount(newCount);
+
+    if (newCount >= 10) {
+      setShowUserList(!showUserList);
+      setClickCount(0);
+    }
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#dcd9d3] px-4 py-10 font-sans text-[#1f1f1f]">
       <section className="flex w-[430px] max-w-full flex-col items-center rounded-[40px] bg-[#f4f2ed] px-10 py-10 text-center">
-        <h1 className="text-2xl font-semibold text-[#1f1f1f]">ログイン</h1>
+        <h1
+          className="cursor-pointer text-2xl font-semibold text-[#1f1f1f] select-none"
+          onClick={handleTitleClick}
+        >
+          ログイン
+        </h1>
 
         {/* ユーザー一覧 */}
-        <div className="mt-6 w-full max-w-xs">
-          <p className="mb-3 text-sm text-[#6b6b6b]">
-            ユーザーを選択してください
-          </p>
-          <div className="max-h-[300px] space-y-2 overflow-y-auto">
-            {isLoading ? (
-              <p className="text-center text-sm text-[#a59f95]">
-                読み込み中...
-              </p>
-            ) : users.length === 0 ? (
-              <p className="text-center text-sm text-[#a59f95]">
-                ユーザーが見つかりません
-              </p>
-            ) : (
-              users.map((user) => (
-                <button
-                  key={user.id}
-                  onClick={() => handleSelectUser(user.id, user.name)}
-                  className={`w-full rounded-[12px] border px-4 py-3 text-left transition hover:bg-[#e6e2dc] ${
-                    id === user.id
-                      ? "border-[#303030] bg-[#e6e2dc]"
-                      : "border-[#e6e2dc] bg-white"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold text-[#303030]">
-                      {user.name}
-                    </p>
-                    <p className="text-xs text-[#a59f95]">
-                      口座番号: {user.id}
-                    </p>
-                  </div>
-                </button>
-              ))
-            )}
+        {showUserList && (
+          <div className="mt-6 w-full max-w-xs">
+            <p className="mb-3 text-sm text-[#6b6b6b]">
+              ユーザーを選択してください
+            </p>
+            <div className="max-h-[300px] space-y-2 overflow-y-auto">
+              {isLoading ? (
+                <p className="text-center text-sm text-[#a59f95]">
+                  読み込み中...
+                </p>
+              ) : users.length === 0 ? (
+                <p className="text-center text-sm text-[#a59f95]">
+                  ユーザーが見つかりません
+                </p>
+              ) : (
+                users.map((user) => (
+                  <button
+                    key={user.id}
+                    onClick={() => handleSelectUser(user.id, user.name)}
+                    className={`w-full rounded-[12px] border px-4 py-3 text-left transition hover:bg-[#e6e2dc] ${
+                      id === user.id
+                        ? "border-[#303030] bg-[#e6e2dc]"
+                        : "border-[#e6e2dc] bg-white"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold text-[#303030]">
+                        {user.name}
+                      </p>
+                      <p className="text-xs text-[#a59f95]">
+                        口座番号: {user.id}
+                      </p>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* または手動入力 */}
         <div className="mt-6 w-full max-w-xs">
-          <p className="mb-3 text-sm text-[#6b6b6b]">または手動入力</p>
           <div className="flex flex-col gap-3">
             <input
               type="text"
