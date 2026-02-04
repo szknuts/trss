@@ -5,39 +5,65 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useUser } from "@/context/UserContext";
 import { getUserById } from "@/lib/db/users";
-import type { User } from "@/lib/db/database.type";
+import { getPaymentRequest } from "@/lib/db/paymentRequests";
+import type { User, PaymentRequest } from "@/lib/db/database.type";
 
 export default function PayPage() {
   const { userId } = useUser();
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // URLから請求情報を取得
-  const amount = Number(searchParams.get("amount") ?? 0);
-  const message = searchParams.get("message") ?? "";
-  const createdBy = searchParams.get("createdBy") ?? "";
+  const paymentId = searchParams.get("paymentId");
 
   const [me, setMe] = useState<User | null>(null);
+  const [payment, setPayment] = useState<PaymentRequest | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // ① ログインチェック + 残高取得
+  // ログインチェック + データ取得
   useEffect(() => {
-    if (!userId) {
-      const redirectTo =
-        encodeURIComponent(
-          window.location.pathname + window.location.search
-        );
+    if (!paymentId) {
+      alert("請求IDが不正です");
+      router.replace("/");
+      return;
+    }
 
+    if (!userId) {
+      const redirectTo = encodeURIComponent(
+        window.location.pathname + window.location.search
+      );
       router.replace(`/login?redirect=${redirectTo}`);
       return;
     }
 
-    getUserById(userId).then(setMe);
-  }, [userId, router]);
+    const uid = userId;
+    const pid = paymentId;
 
+    async function fetchData() {
+      try {
+        const [user, request] = await Promise.all([
+          getUserById(uid),
+          getPaymentRequest(pid),
+        ]);
 
-  if (!userId || !me) return null;
+        setMe(user);
+        setPayment(request);
+      } catch (e) {
+        console.error(e);
+        alert("請求情報の取得に失敗しました");
+        router.replace("/");
+      } finally {
+        setLoading(false);
+      }
+    }
 
-  const canPay = me.balance >= amount && amount > 0;
+    fetchData();
+  }, [userId, paymentId, router]);
+
+  if (loading || !me || !payment) return null;
+
+  const canPay =
+    payment.state === "pending" &&
+    me.balance >= payment.amount;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#dcd9d3] px-4 py-10">
@@ -51,14 +77,14 @@ export default function PayPage() {
         <div className="mt-10 w-full max-w-xs rounded-[26px] border bg-white px-6 py-8">
           <p className="text-sm tracking-widest text-[#a59f95]">AMOUNT</p>
           <p className="mt-4 text-4xl font-semibold">
-            {amount.toLocaleString()}円
+            {payment.amount.toLocaleString()}円
           </p>
         </div>
 
         {/* メッセージ */}
-        {message && (
+        {payment.message && (
           <p className="mt-4 text-sm text-slate-600">
-            {message}
+            {payment.message}
           </p>
         )}
 
@@ -74,21 +100,23 @@ export default function PayPage() {
           </p>
         ) : (
           <p className="mt-4 text-red-600 text-sm">
-            残高が不足しています
+            {payment.state === "paid"
+              ? "この請求はすでに支払われています"
+              : "残高が不足しています"}
           </p>
         )}
 
         {/* 支払い */}
-        {/* 支払いボタン（リンク版） */} 
         <Link
-         href={canPay ? "/link_to_pay/complete" : "#"}
-         className={`mt-10 w-full max-w-xs rounded-full py-4 text-center text-white transition 
-         ${canPay
-          ? "bg-[#303030] hover:opacity-90"
-          : "bg-[#aaa] pointer-events-none"}`
-        } 
-        > 
-         支払う 
+          href={canPay ? `/link_to_pay/complete?paymentId=${payment.id}` : "#"}
+          className={`mt-10 w-full max-w-xs rounded-full py-4 text-center text-white transition
+            ${
+              canPay
+                ? "bg-[#303030] hover:opacity-90"
+                : "bg-[#aaa] pointer-events-none"
+            }`}
+        >
+          支払う
         </Link>
 
         <Link href="/" className="mt-6 text-sm underline">
