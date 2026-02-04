@@ -22,12 +22,18 @@ export default function PayPage() {
   // ① ログインチェック + 残高取得
   useEffect(() => {
     if (!userId) {
-      router.replace("/login");
+      const redirectTo =
+        encodeURIComponent(
+          window.location.pathname + window.location.search
+        );
+
+      router.replace(`/login?redirect=${redirectTo}`);
       return;
     }
 
     getUserById(userId).then(setMe);
   }, [userId, router]);
+
 
   if (!userId || !me) return null;
 
@@ -73,16 +79,17 @@ export default function PayPage() {
         )}
 
         {/* 支払い */}
-        <button
-          disabled={!canPay}
-          className={`mt-10 w-full max-w-xs rounded-full py-4 text-white ${
-            canPay
-              ? "bg-[#303030]"
-              : "bg-gray-400 cursor-not-allowed"
-          }`}
-        >
-          支払う
-        </button>
+        {/* 支払いボタン（リンク版） */} 
+        <Link
+         href={canPay ? "/link_to_pay/complete" : "#"}
+         className={`mt-10 w-full max-w-xs rounded-full py-4 text-center text-white transition 
+         ${canPay
+          ? "bg-[#303030] hover:opacity-90"
+          : "bg-[#aaa] pointer-events-none"}`
+        } 
+        > 
+         支払う 
+        </Link>
 
         <Link href="/" className="mt-6 text-sm underline">
           トップへ戻る
