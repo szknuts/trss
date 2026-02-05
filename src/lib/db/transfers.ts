@@ -8,26 +8,30 @@ import type { Transfer } from "@/lib/db/database.type";
 import { getUserById, updateUserBalance } from "./users";
 
 const MIN_TRANSFER_AMOUNT = 1 as const;
+const TABLE_NAME = "transfers";
+
+// 送金実行に関する関数
+////////////////////////////////////////////////////////////////////////////////
 
 /**
  * @description 送金履歴を作成
- * @param fromUserId - 送金元ユーザーID
- * @param toUserId - 送金先ユーザーID
+ * @param senderId - 送金元ユーザーID
+ * @param receiverId - 送金先ユーザーID
  * @param amount - 送金金額
- * @param message - メッセージ
+ * @param message - メッセージ (null可)
  * @returns 作成された送金履歴
  */
 export async function createTransfer(
-  fromUserId: string,
-  toUserId: string,
+  senderId: Transfer["sender_id"],
+  receiverId: Transfer["receiver_id"],
   amount: number,
   message?: string,
 ): Promise<Transfer> {
   const { data, error } = await supabase
-    .from("transfers")
+    .from(TABLE_NAME)
     .insert({
-      sender_id: fromUserId,
-      receiver_id: toUserId,
+      sender_id: senderId,
+      receiver_id: receiverId,
       amount,
       message,
     })
@@ -43,17 +47,85 @@ export async function createTransfer(
 }
 
 /**
+ * @description 送金を実行する
+ * @param senderId - 送金元ユーザーID
+ * @param receiverId - 送金先ユーザーID
+ * @param amount - 送金金額
+ * @param message - メッセージ (null可)
+ * @returns 作成された送金履歴
+ *
+ * 機能
+ * - エラーチェック
+ * - 送金元の残高を減らす
+ * - 送金先の残高を増やす
+ * - 送金履歴を作成
+ */
+export async function executeTransfer(
+  senderId: Transfer["sender_id"],
+  receiverId: Transfer["receiver_id"],
+  amount: number,
+  message?: string,
+): Promise<Transfer> {
+  if (!Number.isFinite(amount))
+    throw new Error("金額は有効な数値である必要があります");
+
+  if (amount < MIN_TRANSFER_AMOUNT)
+    throw new Error(`送金金額は${MIN_TRANSFER_AMOUNT}円以上を指定してください`);
+
+  if (!senderId || !receiverId)
+    throw new Error("送金元ユーザーIDと送金先ユーザーIDは必須です");
+
+  if (senderId === receiverId) throw new Error("自分自身には送金できません");
+
+  const fromUser = await getUserById(senderId);
+  if (!fromUser) throw new Error("送金元ユーザーが見つかりません");
+
+  const toUser = await getUserById(receiverId);
+  if (!toUser) throw new Error("送金先ユーザーが見つかりません");
+
+  if (fromUser.balance < amount)
+    throw new Error(
+      `残高が不足しています（現在の残高: ${fromUser.balance}円、送金額: ${amount}円）`,
+    );
+
+  try {
+    // 送金元の残高を減らす
+    await updateUserBalance(senderId, fromUser.balance - amount);
+    // 送金先の残高を増やす
+    await updateUserBalance(receiverId, toUser.balance + amount);
+
+    // 送金履歴を作成
+    const transfer = await createTransfer(
+      senderId,
+      receiverId,
+      amount,
+      message,
+    );
+
+    return transfer;
+  } catch (error) {
+    console.error("送金処理でエラーが発生しました:", error);
+    if (error instanceof Error)
+      throw new Error(`送金処理に失敗しました: ${error.message}`);
+    throw error;
+  }
+}
+
+// 取得に関する関数
+////////////////////////////////////////////////////////////////////////////////
+
+/**
  * @description 特定ユーザーの送金履歴を取得（送金元）
- * @param userId - 送金元ユーザーID
+ * @param senderId - 送金元ユーザーID
  * @returns 送金履歴配列
  */
 export async function getTransfersBySenderId(
-  userId: string,
+  senderId: Transfer["sender_id"],
 ): Promise<Transfer[]> {
   const { data, error } = await supabase
-    .from("transfers")
+    .from(TABLE_NAME)
     .select("*")
-    .eq("sender_id", userId)
+    .eq("sender_id", senderId)
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -66,16 +138,16 @@ export async function getTransfersBySenderId(
 
 /**
  * @description 特定ユーザーの送金履歴を取得（送金先）
- * @param userId - 送金先ユーザーID
+ * @param receiverId - 送金先ユーザーID
  * @returns 送金履歴配列
  */
 export async function getTransfersByReceiverId(
-  userId: string,
+  receiverId: Transfer["receiver_id"],
 ): Promise<Transfer[]> {
   const { data, error } = await supabase
-    .from("transfers")
+    .from(TABLE_NAME)
     .select("*")
-    .eq("receiver_id", userId)
+    .eq("receiver_id", receiverId)
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -84,65 +156,4 @@ export async function getTransfersByReceiverId(
   }
 
   return data || [];
-}
-
-/**
- * @description 送金を実行する
- * @param fromUserId - 送金元ユーザーID
- * @param toUserId - 送金先ユーザーID
- * @param amount - 送金金額
- * @param message - メッセージ
- * @returns 作成された送金履歴
- * @throws {Error} ユーザーが見つからない、残高不足、送金金額が不正な場合
- *
- * エラーチェックは行っているが、フロント側でも書いてください
- *
- * 機能
- * - エラーチェック
- * - 送金元の残高を減らす
- * - 送金先の残高を増やす
- * - 送金履歴を作成
- */
-export async function executeTransfer(
-  fromUserId: string,
-  toUserId: string,
-  amount: number,
-  message?: string,
-): Promise<Transfer> {
-  if (amount < MIN_TRANSFER_AMOUNT)
-    throw new Error("送金金額は1円以上を指定してください");
-
-  if (fromUserId === toUserId) throw new Error("自分自身には送金できません");
-
-  const fromUser = await getUserById(fromUserId);
-  if (!fromUser) throw new Error("送金元ユーザーが見つかりません");
-
-  const toUser = await getUserById(toUserId);
-  if (!toUser) throw new Error("送金先ユーザーが見つかりません");
-
-  if (fromUser.balance < amount)
-    throw new Error(
-      `残高が不足しています（現在の残高: ${fromUser.balance}円、送金額: ${amount}円）`,
-    );
-
-  try {
-    // 送金元の残高を減らす
-    await updateUserBalance(fromUserId, fromUser.balance - amount);
-    // 送金先の残高を増やす
-    await updateUserBalance(toUserId, toUser.balance + amount);
-
-    // 送金履歴を作成
-    const transfer = await createTransfer(
-      fromUserId,
-      toUserId,
-      amount,
-      message,
-    );
-
-    return transfer;
-  } catch (error) {
-    console.error("送金処理でエラーが発生しました:", error);
-    if (error instanceof Error) throw new Error("送金処理に失敗しました");
-    throw error;
-  }
 }

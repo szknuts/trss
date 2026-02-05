@@ -4,72 +4,55 @@
  */
 
 import { supabase } from "@/lib/db/supabase";
-import type { PaymentRequest } from "@/lib/db/database.type";
+import type { PaymentRequest, User } from "@/lib/db/database.type";
 import { executeTransfer } from "./transfers";
+
+const TABLE_NAME = "payment_requests";
+const MIN_AMOUNT = 1;
 
 // 請求の作成に関する関数
 ////////////////////////////////////////////////////////////////////////////////
 
 /**
- * @description 請求を作成
+ * @description 請求を作成 (支払ユーザ指定対応)
  * @param requesterId - 請求したユーザーID
+ * @param payerId - 支払うユーザーID（まだ誰も決まっていない場合はnull）
  * @param amount - 金額
- * @param message - メッセージ
+ * @param message - メッセージ (null可)
  * @returns 作成された請求
  */
 export async function createPaymentRequest(
-  requesterId: string,
+  requesterId: PaymentRequest["requester_id"],
+  payerId: PaymentRequest["payer_id"] | null,
   amount: number,
   message?: string,
 ): Promise<PaymentRequest> {
+  if (!Number.isFinite(amount))
+    throw new Error("金額は有効な数値である必要があります");
+
+  if (amount < MIN_AMOUNT)
+    throw new Error("金額は正の数値である必要があります");
+
+  if (!requesterId) throw new Error("請求したユーザーIDは必須です");
+
+  if (requesterId === payerId)
+    throw new Error("請求したユーザーと支払うユーザーは異なります");
+
   const { data, error } = await supabase
-    .from("payment_requests")
-    .insert({
-      requester_id: requesterId,
-      amount: amount,
-      message: message,
-    })
-    .select()
-    .single();
-
-  if (error) {
-    console.error("Error creating payment request:", error);
-    throw error;
-  }
-
-  return data;
-}
-
-/**
- * @description 請求を作成(支払うユーザーを指定)
- * @param requesterId - 請求したユーザーID
- * @param payerId - 支払うユーザーID
- * @param amount - 金額
- * @param message - メッセージ
- * @returns 作成された請求
- */
-export async function createPaymentRequestWithPayer(
-  requesterId: string,
-  payerId: string,
-  amount: number,
-  message?: string,
-): Promise<PaymentRequest> {
-  const { data, error } = await supabase
-    .from("payment_requests")
+    .from(TABLE_NAME)
     .insert({
       requester_id: requesterId,
       payer_id: payerId,
-      amount: amount,
-      message: message,
+      amount,
+      message,
     })
     .select()
     .single();
 
   if (error) {
     console.error("Error creating payment request:", error);
-    throw error;
+    throw new Error(`請求の作成に失敗しました: ${error.message}`);
   }
-
   return data;
 }
 
@@ -82,15 +65,14 @@ export async function createPaymentRequestWithPayer(
  */
 export async function getAllPaymentRequests(): Promise<PaymentRequest[]> {
   const { data, error } = await supabase
-    .from("payment_requests")
+    .from(TABLE_NAME)
     .select("*")
-    .order("id", { ascending: true });
+    .order("created_at", { ascending: false });
 
   if (error) {
     console.error("Error fetching payment requests:", error);
-    throw error;
+    throw new Error(`請求の取得に失敗しました: ${error.message}`);
   }
-
   return data || [];
 }
 
@@ -101,14 +83,14 @@ export async function getAllPaymentRequests(): Promise<PaymentRequest[]> {
  */
 export async function getPaymentRequest(id: string): Promise<PaymentRequest> {
   const { data, error } = await supabase
-    .from("payment_requests")
+    .from(TABLE_NAME)
     .select("*")
     .eq("id", id)
     .single();
 
   if (error) {
     console.error("Error fetching payment request:", error);
-    throw error;
+    throw new Error(`請求の取得に失敗しました: ${error.message}`);
   }
 
   return data;
@@ -116,43 +98,42 @@ export async function getPaymentRequest(id: string): Promise<PaymentRequest> {
 
 /**
  * @description 請求したユーザーIDから請求を取得
- * @param userId - ユーザーID
+ * @param userId - 請求ユーザーID
  * @returns 請求配列
  */
 export async function getPaymentRequestsByRequesterId(
-  userId: string,
+  userId: PaymentRequest["requester_id"],
 ): Promise<PaymentRequest[]> {
   const { data, error } = await supabase
-    .from("payment_requests")
+    .from(TABLE_NAME)
     .select("*")
     .eq("requester_id", userId)
-    .order("id", { ascending: true });
+    .order("created_at", { ascending: false });
 
   if (error) {
     console.error("Error fetching payment requests:", error);
-    throw error;
+    throw new Error(`請求の取得に失敗しました: ${error.message}`);
   }
-
   return data || [];
 }
 
 /**
  * @description 支払うユーザーIDから請求を取得
- * @param userId - ユーザーID
+ * @param userId - 支払いユーザーID
  * @returns 請求配列
  */
 export async function getPaymentRequestsByPayerId(
-  userId: string,
+  userId: PaymentRequest["payer_id"],
 ): Promise<PaymentRequest[]> {
   const { data, error } = await supabase
-    .from("payment_requests")
+    .from(TABLE_NAME)
     .select("*")
     .eq("payer_id", userId)
-    .order("id", { ascending: true });
+    .order("created_at", { ascending: false });
 
   if (error) {
     console.error("Error fetching payment requests:", error);
-    throw error;
+    throw new Error(`請求の取得に失敗しました: ${error.message}`);
   }
 
   return data || [];
@@ -162,49 +143,32 @@ export async function getPaymentRequestsByPayerId(
 ////////////////////////////////////////////////////////////////////////////////
 
 /**
- * @description 請求を支払う
+ * @description 請求を支払う (支払うユーザーが指定されている場合にも対応)
  * @param id - 請求ID
  * @param payerId - 支払うユーザーID
  * @returns 支払われた請求
  */
 export async function payPaymentRequest(
-  id: string,
-  payerId: string,
+  id: PaymentRequest["id"],
+  payerId: PaymentRequest["payer_id"],
 ): Promise<PaymentRequest> {
-  await setPayer(id, payerId);
+  const paymentRequest = await getPaymentRequest(id);
 
-  const { data, error } = await supabase
-    .from("payment_requests")
-    .update({ state: "paid" })
-    .eq("id", id)
-    .select()
-    .single();
+  if (!paymentRequest) throw new Error("請求が存在しません");
 
-  if (error) {
-    console.error("Error paying payment request:", error);
-    throw error;
+  if (!payerId) throw new Error("支払うユーザーを指定してください");
+
+  if (paymentRequest.payer_id === null) {
+    await setPayer(id, payerId);
+  } else if (paymentRequest.payer_id !== payerId) {
+    throw new Error("支払うユーザーが異なります");
   }
 
-  await executeTransfer(payerId, data.requester_id, data.amount);
-
-  return data;
-}
-
-/**
- * @description 請求を支払う（支払うユーザーが指定されている場合）
- * @param id - 請求ID
- * @param payerId - 支払うユーザーID
- * @returns 支払われた請求
- */
-export async function payPaymentRequestWithPayer(
-  id: string,
-  payerId: string,
-): Promise<PaymentRequest> {
-  if ((await getPaymentRequest(id)).payer_id !== payerId)
-    throw new Error("支払うユーザーが異なります");
+  if (paymentRequest.state === "paid")
+    throw new Error("請求は既に支払われています");
 
   const { data, error } = await supabase
-    .from("payment_requests")
+    .from(TABLE_NAME)
     .update({ state: "paid" })
     .eq("id", id)
     .select()
@@ -212,7 +176,7 @@ export async function payPaymentRequestWithPayer(
 
   if (error) {
     console.error("Error paying payment request:", error);
-    throw error;
+    throw new Error(`請求の支払いに失敗しました: ${error.message}`);
   }
 
   await executeTransfer(payerId, data.requester_id, data.amount);
@@ -224,6 +188,58 @@ export async function payPaymentRequestWithPayer(
 ////////////////////////////////////////////////////////////////////////////////
 
 /**
+ * @description 期限をスキャンして期限切れ処理(stateをoverdueに変更)
+ * @param paymentRequests - 請求配列
+ * @returns 更新後の最新の請求配列
+ *
+ * pending状態かつdue_dateが現在時刻より前の請求をoverdueに更新
+ * 請求をリスト表示する前に実行する
+ */
+export async function scanPaymentRequests(
+  paymentRequests: PaymentRequest[],
+): Promise<PaymentRequest[]> {
+  const now = new Date();
+  const updatedRequests = [...paymentRequests]; // コピーを作成
+
+  for (let i = 0; i < updatedRequests.length; i++) {
+    const request = updatedRequests[i];
+
+    // pending状態かつ期限切れの場合のみ更新
+    if (request.state === "pending") {
+      const dueDate = new Date(request.due_date);
+
+      if (dueDate < now) {
+        try {
+          const { data, error } = await supabase
+            .from(TABLE_NAME)
+            .update({ state: "overdue" })
+            .eq("id", request.id)
+            .select()
+            .single();
+
+          if (error) {
+            console.error(
+              `Error updating payment request ${request.id}:`,
+              error,
+            );
+          } else if (data) {
+            // 更新されたデータで置き換え
+            updatedRequests[i] = data;
+          }
+        } catch (error) {
+          console.error(
+            `Failed to update payment request ${request.id}:`,
+            error,
+          );
+        }
+      }
+    }
+  }
+
+  return updatedRequests;
+}
+
+/**
  * @description 請求を削除
  * @param id - 請求ID
  * @returns 削除された請求
@@ -232,7 +248,7 @@ export async function deletePaymentRequest(
   id: string,
 ): Promise<PaymentRequest> {
   const { data, error } = await supabase
-    .from("payment_requests")
+    .from(TABLE_NAME)
     .delete()
     .eq("id", id)
     .select()
@@ -240,7 +256,7 @@ export async function deletePaymentRequest(
 
   if (error) {
     console.error("Error deleting payment request:", error);
-    throw error;
+    throw new Error(`請求の削除に失敗しました: ${error.message}`);
   }
 
   return data;
@@ -252,12 +268,9 @@ export async function deletePaymentRequest(
  * @param payerId - 支払うユーザーID
  * @returns 設定された請求
  */
-export async function setPayer(
-  id: string,
-  payerId: string,
-): Promise<PaymentRequest> {
+async function setPayer(id: string, payerId: string): Promise<PaymentRequest> {
   const { data, error } = await supabase
-    .from("payment_requests")
+    .from(TABLE_NAME)
     .update({ payer_id: payerId })
     .eq("id", id)
     .select()
@@ -265,7 +278,9 @@ export async function setPayer(
 
   if (error) {
     console.error("Error setting payer:", error);
-    throw error;
+    throw new Error(
+      `請求の支払うユーザーの設定に失敗しました: ${error.message}`,
+    );
   }
 
   return data;

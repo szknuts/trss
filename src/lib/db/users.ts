@@ -9,6 +9,9 @@ import type { User } from "@/lib/db/database.type";
 const TABLE_NAME = "users";
 const MIN_BALANCE = 0;
 
+// ユーザー取得に関する関数
+////////////////////////////////////////////////////////////////////////////////
+
 /**
  * @description すべてのユーザーを取得
  * @returns ユーザー情報配列
@@ -32,7 +35,7 @@ export async function getAllUsers(): Promise<User[]> {
  * @param id - ユーザーID
  * @returns ユーザー情報
  */
-export async function getUserById(id: string): Promise<User | null> {
+export async function getUserById(id: User["id"]): Promise<User | null> {
   const { data, error } = await supabase
     .from(TABLE_NAME)
     .select("*")
@@ -47,6 +50,9 @@ export async function getUserById(id: string): Promise<User | null> {
   return data;
 }
 
+// ユーザー更新に関する関数
+////////////////////////////////////////////////////////////////////////////////
+
 /**
  * @description ユーザーの残高を更新
  * @param id - ユーザーID
@@ -56,7 +62,7 @@ export async function getUserById(id: string): Promise<User | null> {
  * 送金者、受金者両方で使う(改良予定)
  */
 export async function updateUserBalance(
-  id: string,
+  id: User["id"],
   newBalance: number,
 ): Promise<User | null> {
   if (!Number.isFinite(newBalance))
