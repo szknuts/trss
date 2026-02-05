@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { createPaymentRequestWithPayer } from "@/lib/db/paymentRequests";
+import { createPaymentRequest } from "@/lib/db/paymentRequests";
 
 export default function InvoicePage() {
   const [accountNumber, setAccountNumber] = useState("");
@@ -15,13 +15,13 @@ export default function InvoicePage() {
   const createdBy = "";
   const createdAt = new Date().toISOString();
 
-  const requesterId = "";
+  const requesterId = "0001";
 
   const isDisabled = !accountNumber || !amount || Number(amount) <= 0;
 
   const handleCreateLink = async () => {
     try {
-      const paymentRequest = await createPaymentRequestWithPayer(
+      const paymentRequest = await createPaymentRequest(
         requesterId,
         accountNumber, 
         Number(amount),
