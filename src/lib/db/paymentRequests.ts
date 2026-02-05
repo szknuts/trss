@@ -240,7 +240,7 @@ export async function rejectPaymentRequest(
  * pending状態かつdue_dateが現在時刻より前の請求をoverdueに更新
  * 請求をリスト表示する前に実行する
  */
-async function scanPaymentRequests(
+export async function scanPaymentRequests(
   paymentRequests: PaymentRequest[],
 ): Promise<PaymentRequest[]> {
   const now = new Date();
