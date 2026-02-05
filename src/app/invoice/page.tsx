@@ -4,9 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { createPaymentRequest } from "@/lib/db/paymentRequests";
 
-
-
 export default function InvoicePage() {
+  const [accountNumber, setAccountNumber] = useState("");
   const [amount, setAmount] = useState("");
   const [message, setMessage] = useState("");
   const [isEditingAmount, setIsEditingAmount] = useState(false);
@@ -16,26 +15,26 @@ export default function InvoicePage() {
   const createdBy = "";
   const createdAt = new Date().toISOString();
 
-  const isDisabled = !amount || Number(amount) <= 0;
+  const requesterId = "0001";
+
+  const isDisabled = !accountNumber || !amount || Number(amount) <= 0;
 
   const handleCreateLink = async () => {
-  try {
-    // 🔹 DBに請求を作成
-    const paymentRequest = await createPaymentRequest(
-      "0001", // ← requesterId（あとでログインユーザーにする）
-      Number(amount),
-      message,
-    );
+    try {
+      const paymentRequest = await createPaymentRequest(
+        requesterId,
+        accountNumber, 
+        Number(amount),
+        message
+      );
 
-    // 🔹 作成されたIDだけをURLに載せる
-    const link = `${window.location.origin}/link_to_pay?paymentId=${paymentRequest.id}`;
-    setCreatedLink(link);
-  } catch (e) {
-    console.error(e);
-    alert("請求リンクの作成に失敗しました");
-  }
-};
-
+      const link = `${window.location.origin}/link_to_pay?paymentId=${paymentRequest.id}`;
+      setCreatedLink(link);
+    } catch (e) {
+      console.error(e);
+      alert("請求リンクの作成に失敗しました");
+    }
+  };
 
   const handleCopy = async () => {
     if (!createdLink) return;
@@ -49,6 +48,15 @@ export default function InvoicePage() {
         <div style={styles.screen}>
           <main style={styles.container}>
             <h1 style={styles.title}>請求リンクの作成</h1>
+
+            {/* 口座番号 */}
+            <label style={styles.label}>口座番号</label>
+            <input
+              type="text"
+              value={accountNumber}
+              onChange={(e) => setAccountNumber(e.target.value)}
+              style={styles.input}
+            />
 
             {/* 請求金額 */}
             <label style={styles.label}>請求金額</label>
@@ -80,12 +88,9 @@ export default function InvoicePage() {
               style={styles.textarea}
             />
 
-            {/* 作成後表示 */}
             {createdLink && (
               <>
-                <p style={styles.createdTitle}>
-                  請求リンクが作成されました
-                </p>
+                <p style={styles.createdTitle}>請求リンクが作成されました</p>
 
                 <div style={styles.linkBox}>{createdLink}</div>
 
@@ -96,7 +101,6 @@ export default function InvoicePage() {
             )}
           </main>
 
-          {/* フッター */}
           <div style={styles.footer}>
             {!createdLink && (
               <button
@@ -111,7 +115,6 @@ export default function InvoicePage() {
               </button>
             )}
 
-            {/* 常に表示 */}
             <Link href="/" style={styles.backButton}>
               トップ画面に戻る
             </Link>
@@ -157,6 +160,18 @@ const styles: { [key: string]: React.CSSProperties } = {
     marginBottom: 10,
     display: "block",
   },
+
+  // ★ 追加した部分（宛先・口座番号用）
+  input: {
+    width: "100%",
+    padding: 18,
+    marginBottom: 24,
+    borderRadius: 14,
+    backgroundColor: "#fff",
+    fontSize: 18,
+    border: "none",
+  },
+
   amountWrapper: {
     position: "relative",
     marginBottom: 24,
