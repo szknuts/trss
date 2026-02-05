@@ -133,6 +133,12 @@ export default function Home() {
           >
             請求一覧へ
           </Link>
+          <Link
+            href="/history"
+            className="mt-2 w-full max-w-xs rounded-full border border-[#303030] bg-transparent py-4 text-center text-[#303030] transition hover:bg-[#303030] hover:text-white"
+          >
+            取引履歴へ
+          </Link>
           {showUserList && (
             <Link
               href="/test.backend"
