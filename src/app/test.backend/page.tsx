@@ -85,11 +85,12 @@ export default function TestBackendPage() {
   // 請求を作成する
   async function handleCreatePaymentRequest(
     requesterId: string,
+    payerId: string | null,
     amount: number,
     message?: string,
   ) {
     try {
-      await createPaymentRequest(requesterId, amount, message);
+      await createPaymentRequest(requesterId, payerId, amount, message);
 
       // データを再取得して最新の状態を表示
       const updatedPaymentRequests = await getAllPaymentRequests();
@@ -231,7 +232,9 @@ export default function TestBackendPage() {
           {myData && (
             <button
               className="bg-stone-400 py-1 px1 border border-stone-600 rounded-md"
-              onClick={() => handleCreatePaymentRequest("0001", 100, "うに丼")}
+              onClick={() =>
+                handleCreatePaymentRequest("0001", null, 100, "うに丼")
+              }
             >
               作成
             </button>
