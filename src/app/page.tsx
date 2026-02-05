@@ -7,7 +7,7 @@ import { getUserById } from "@/lib/db/users";
 import { useUser } from "@/context/UserContext";
 
 export default function Home() {
-  const { userId } = useUser();
+  const { userId, setUserId } = useUser();
   const router = useRouter();
   const [user, setUser] = useState<any | null>(null);
   const [showUserList, setShowUserList] = useState(false); // 一覧表示フラグ
@@ -41,9 +41,23 @@ export default function Home() {
     }
   };
 
+  // ログアウト処理
+  const handleLogout = () => {
+    setUserId(null);
+    router.replace("/login");
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#dcd9d3] px-4 py-10 font-sans text-[#1f1f1f]">
-      <section className="flex h-[932px] w-[430px] max-w-full flex-col items-center rounded-[40px] bg-[#f4f2ed] px-10 pb-16 pt-20 text-center">
+      <section className="relative flex h-[932px] w-[430px] max-w-full flex-col items-center rounded-[40px] bg-[#f4f2ed] px-10 pb-16 pt-20 text-center">
+        {/* ログアウトボタン */}
+        <button
+          onClick={handleLogout}
+          className="absolute left-6 top-6 text-xs text-[#a59f95] hover:text-[#6b6b6b] transition"
+        >
+          ログアウト
+        </button>
+
         <div className="flex flex-1 flex-col items-center">
           <div
             className="flex h-24 w-24 items-center rounded-full bg-[#ded8cf] text-3xl text-[#2f2b28]"
