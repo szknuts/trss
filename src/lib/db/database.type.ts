@@ -7,10 +7,10 @@
  * @description usersテーブルの型定義
  */
 export interface User {
-  id: string; // ユーザーID
+  id: string; // ユーザーID (口座番号)
   name: string; // ユーザー名
   balance: number; // 残高
-  icon_url: string | null; // アイコンURL
+  icon_url: string; // アイコンURL
   created_at: string; // 作成日時
 }
 
@@ -22,7 +22,7 @@ export interface Transfer {
   sender_id: string; // 送金元ユーザーID
   receiver_id: string; // 送金先ユーザーID
   amount: number; // 送金額
-  message?: string; // メッセージ（オプショナル）
+  message: string | null; // メッセージ（NULL許可）
   created_at: string; // 作成日時
 }
 
@@ -31,8 +31,9 @@ export interface Transfer {
  * - pending: 待機中
  * - rejected: 却下
  * - paid: 支払い済み
+ * - overdue: 支払い期限切れ
  */
-export type PaymentRequestState = "pending" | "rejected" | "paid";
+export type PaymentRequestState = "pending" | "rejected" | "paid" | "overdue";
 
 /**
  * @description payment_requestsテーブルの型定義
@@ -40,10 +41,10 @@ export type PaymentRequestState = "pending" | "rejected" | "paid";
 export interface PaymentRequest {
   id: string; // 請求ID
   requester_id: string; // 請求したユーザーID
-  payer_id: string | null; // 支払うユーザーID（まだ誰も決まっていない場合はnull）
+  payer_id: string | null; // 支払うユーザーID（NULL許可）
   amount: number; // 送金額
-  message?: string; // メッセージ（オプショナル）
-  created_at: string; // 作成日時
-  due_date: string; // 期日
+  message: string | null; // メッセージ（NULL許可）
+  created_at: string; // 作成日時（自動生成）
+  due_date: string; // 期日（自動生成）
   state: PaymentRequestState; // 状態
 }
