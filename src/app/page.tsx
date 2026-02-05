@@ -66,7 +66,7 @@ export default function Home() {
         >
           ログアウト
         </button>
-      <section className="flex h-[932px] w-[430px] max-w-full flex-col items-center rounded-[40px] bg-[#f4f2ed] px-10 pb-16 pt-20 text-center">
+
         {/* 未払い請求通知バー → 別ページへ遷移 */}
         {unpaidCount > 0 && (
           <Link
