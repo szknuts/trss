@@ -9,7 +9,7 @@ import { useUser } from "@/context/UserContext";
 import type { User } from "@/lib/db/database.type";
 
 export default function Home() {
-  const { userId } = useUser();
+  const { userId, setUserId } = useUser();
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [unpaidCount, setUnpaidCount] = useState(0);
@@ -50,8 +50,22 @@ export default function Home() {
     }
   };
 
+  // ログアウト処理
+  const handleLogout = () => {
+    setUserId(null);
+    router.replace("/login");
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#dcd9d3] px-4 py-10 font-sans text-[#1f1f1f]">
+      <section className="relative flex h-[932px] w-[430px] max-w-full flex-col items-center rounded-[40px] bg-[#f4f2ed] px-10 pb-16 pt-20 text-center">
+        {/* ログアウトボタン */}
+        <button
+          onClick={handleLogout}
+          className="absolute left-6 top-6 text-xs text-[#a59f95] hover:text-[#6b6b6b] transition"
+        >
+          ログアウト
+        </button>
       <section className="flex h-[932px] w-[430px] max-w-full flex-col items-center rounded-[40px] bg-[#f4f2ed] px-10 pb-16 pt-20 text-center">
         {/* 未払い請求通知バー → 別ページへ遷移 */}
         {unpaidCount > 0 && (

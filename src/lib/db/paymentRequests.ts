@@ -95,7 +95,9 @@ export async function getPaymentRequest(id: string): Promise<PaymentRequest> {
     console.error("Error fetching payment request:", error);
     throw new Error(`請求の取得に失敗しました: ${error.message}`);
   }
-  const scannedData = await scanPaymentRequests(data[0] || []);
+
+  // .single()はオブジェクトを返すので、配列に包んでスキャン
+  const scannedData = await scanPaymentRequests([data]);
 
   return scannedData[0];
 }
