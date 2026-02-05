@@ -1,31 +1,38 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createPaymentRequest } from "@/lib/db/paymentRequests";
+import { useUser } from "@/context/UserContext";
+import { useRouter } from "next/navigation";
 
 export default function InvoicePage() {
+  const { userId } = useUser();
   const [accountNumber, setAccountNumber] = useState("");
   const [amount, setAmount] = useState("");
   const [message, setMessage] = useState("");
   const [isEditingAmount, setIsEditingAmount] = useState(false);
-
+  const router = useRouter();
   const [createdLink, setCreatedLink] = useState<string | null>(null);
 
-  const createdBy = "";
-  const createdAt = new Date().toISOString();
-
-  const requesterId = "0001";
+  const requesterId = userId;
 
   const isDisabled = !accountNumber || !amount || Number(amount) <= 0;
+
+  useEffect(() => {
+    if (!userId) {
+      router.replace("/login");
+      return;
+    }
+  }, [userId]);
 
   const handleCreateLink = async () => {
     try {
       const paymentRequest = await createPaymentRequest(
-        requesterId,
-        accountNumber, 
+        requesterId!,
+        accountNumber,
         Number(amount),
-        message
+        message,
       );
 
       const link = `${window.location.origin}/link_to_pay?paymentId=${paymentRequest.id}`;
