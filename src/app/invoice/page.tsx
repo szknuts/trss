@@ -1,31 +1,82 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createPaymentRequest } from "@/lib/db/paymentRequests";
+import { getAllUsers } from "@/lib/db/users";
+import { useUser } from "@/context/UserContext";
+import { useRouter } from "next/navigation";
+import type { User } from "@/lib/db/database.type";
 
 export default function InvoicePage() {
-  const [accountNumber, setAccountNumber] = useState("");
+  const { userId } = useUser();
   const [amount, setAmount] = useState("");
   const [message, setMessage] = useState("");
   const [isEditingAmount, setIsEditingAmount] = useState(false);
-
+  const router = useRouter();
   const [createdLink, setCreatedLink] = useState<string | null>(null);
 
-  const createdBy = "";
-  const createdAt = new Date().toISOString();
+  // ユーザー一覧関連
+  const [users, setUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [isSelecting, setIsSelecting] = useState(true); // デフォルトで一覧表示
 
-  const requesterId = "0001";
+  const requesterId = userId;
 
-  const isDisabled = !accountNumber || !amount || Number(amount) <= 0;
+  const isDisabled = !amount || Number(amount) <= 0;
+
+  useEffect(() => {
+    if (!userId) {
+      router.replace("/login");
+      return;
+    }
+  }, [userId]);
+
+  // ユーザー一覧を取得
+  useEffect(() => {
+    async function fetchUsers() {
+      try {
+        const allUsers = await getAllUsers();
+        // 自分自身を除外
+        const otherUsers = allUsers.filter((u) => u.id !== userId);
+        setUsers(otherUsers);
+      } catch (error) {
+        console.error("ユーザー取得エラー:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    if (userId) {
+      fetchUsers();
+    }
+  }, [userId]);
+
+  // ユーザーを選択
+  const handleSelectUser = (user: User) => {
+    setSelectedUser(user);
+    setIsSelecting(false);
+  };
+
+  // 選択しないを選択
+  const handleSelectNone = () => {
+    setSelectedUser(null);
+    setIsSelecting(false);
+  };
+
+  // 選択を変更（一覧を表示）
+  const handleChangeSelection = () => {
+    setIsSelecting(true);
+  };
 
   const handleCreateLink = async () => {
     try {
       const paymentRequest = await createPaymentRequest(
-        requesterId,
-        accountNumber, 
+        requesterId!,
+        selectedUser?.id || null,
         Number(amount),
-        message
+        message,
       );
 
       const link = `${window.location.origin}/link_to_pay?paymentId=${paymentRequest.id}`;
@@ -49,44 +100,146 @@ export default function InvoicePage() {
           <main style={styles.container}>
             <h1 style={styles.title}>請求リンクの作成</h1>
 
-            {/* 口座番号 */}
-            <label style={styles.label}>口座番号</label>
-            <input
-              type="text"
-              value={accountNumber}
-              onChange={(e) => setAccountNumber(e.target.value)}
-              style={styles.input}
-            />
+            {/* 宛先指定 */}
+            <label style={styles.label}>宛先を指定する</label>
+
+            {/* ユーザー一覧 */}
+            <div style={styles.userListContainer}>
+              {isLoading ? (
+                <p style={styles.loadingText}>読み込み中...</p>
+              ) : isSelecting ? (
+                <>
+                  {/* 選択しないボタン */}
+                  <button
+                    onClick={handleSelectNone}
+                    style={{
+                      ...styles.userCard,
+                      border: "1px solid #e6e2dc",
+                      backgroundColor: "#fff",
+                    }}
+                  >
+                    <div style={styles.userCardContent}>
+                      <p style={styles.userName}>選択しない</p>
+                      <p style={styles.userId}>宛先を指定せずにリンク作成</p>
+                    </div>
+                  </button>
+
+                  {/* ユーザー一覧 */}
+                  {users.map((user) => (
+                    <button
+                      key={user.id}
+                      onClick={() => handleSelectUser(user)}
+                      style={{
+                        ...styles.userCard,
+                        border: "1px solid #e6e2dc",
+                        backgroundColor: "#fff",
+                      }}
+                    >
+                      {user.icon_url ? (
+                        <img
+                          src={`/users/${user.icon_url}`}
+                          alt={user.name}
+                          style={styles.userIcon}
+                        />
+                      ) : (
+                        <div style={styles.userIconPlaceholder}>
+                          {user.name.charAt(0)}
+                        </div>
+                      )}
+                      <div style={styles.userCardContent}>
+                        <p style={styles.userName}>{user.name}</p>
+                        <p style={styles.userId}>口座番号: {user.id}</p>
+                      </div>
+                    </button>
+                  ))}
+                </>
+              ) : (
+                <>
+                  {/* 選択された項目のみ表示 */}
+                  {selectedUser ? (
+                    <div
+                      style={{
+                        ...styles.userCard,
+                        border: "1px solid #303030",
+                        backgroundColor: "#e6e2dc",
+                        cursor: "default",
+                      }}
+                    >
+                      {selectedUser.icon_url ? (
+                        <img
+                          src={`/users/${selectedUser.icon_url}`}
+                          alt={selectedUser.name}
+                          style={styles.userIcon}
+                        />
+                      ) : (
+                        <div style={styles.userIconPlaceholder}>
+                          {selectedUser.name.charAt(0)}
+                        </div>
+                      )}
+                      <div style={styles.userCardContent}>
+                        <p style={styles.userName}>{selectedUser.name}</p>
+                        <p style={styles.userId}>口座番号: {selectedUser.id}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        ...styles.userCard,
+                        border: "1px solid #303030",
+                        backgroundColor: "#e6e2dc",
+                        cursor: "default",
+                      }}
+                    >
+                      <div style={styles.userCardContent}>
+                        <p style={styles.userName}>選択しない</p>
+                        <p style={styles.userId}>宛先を指定せずにリンク作成</p>
+                      </div>
+                    </div>
+                  )}
+                  {/* 選択を変更ボタン */}
+                  <button
+                    onClick={handleChangeSelection}
+                    style={styles.changeButton}
+                  >
+                    選択を変更
+                  </button>
+                </>
+              )}
+            </div>
 
             {/* 請求金額 */}
-            <label style={styles.label}>請求金額</label>
-            <div style={styles.amountWrapper}>
-              <input
-                type="text"
-                inputMode="numeric"
-                value={amount}
-                onFocus={() => setIsEditingAmount(true)}
-                onBlur={() => setIsEditingAmount(false)}
-                onChange={(e) => {
-                  const value = e.target.value.replace(/[^0-9]/g, "");
-                  setAmount(value);
-                }}
-                style={{
-                  ...styles.amountInput,
-                  textAlign:
-                    isEditingAmount || amount === "" ? "left" : "center",
-                }}
-              />
-              <span style={styles.yen}>円</span>
+            <div>
+              <label style={styles.label}>請求金額</label>
+              <div style={styles.amountWrapper}>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={amount}
+                  onFocus={() => setIsEditingAmount(true)}
+                  onBlur={() => setIsEditingAmount(false)}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^0-9]/g, "");
+                    setAmount(value);
+                  }}
+                  style={{
+                    ...styles.amountInput,
+                    textAlign:
+                      isEditingAmount || amount === "" ? "left" : "center",
+                  }}
+                />
+                <span style={styles.yen}>円</span>
+              </div>
             </div>
 
             {/* メッセージ */}
-            <label style={styles.label}>メッセージ（任意）</label>
-            <textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              style={styles.textarea}
-            />
+            <div>
+              <label style={styles.label}>メッセージ（任意）</label>
+              <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                style={styles.textarea}
+              />
+            </div>
 
             {createdLink && (
               <>
@@ -243,5 +396,122 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: "#303030",
     textDecoration: "underline",
     fontSize: 16,
+  },
+
+  // ユーザー選択UI
+  userListContainer: {
+    maxHeight: 200,
+    overflowY: "auto",
+    marginBottom: 24,
+  },
+  userCard: {
+    width: "100%",
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    padding: "12px 16px",
+    marginBottom: 8,
+    borderRadius: 12,
+    border: "1px solid #e6e2dc",
+    backgroundColor: "#fff",
+    cursor: "pointer",
+    transition: "background-color 0.2s",
+    textAlign: "left",
+  },
+  userIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: "50%",
+    objectFit: "cover",
+    flexShrink: 0,
+  },
+  userIconPlaceholder: {
+    width: 40,
+    height: 40,
+    borderRadius: "50%",
+    backgroundColor: "#ded8cf",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 16,
+    fontWeight: 600,
+    color: "#2f2b28",
+    flexShrink: 0,
+  },
+  userCardContent: {
+    flex: 1,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  userInfo: {
+    flex: 1,
+  },
+  userName: {
+    fontSize: 14,
+    fontWeight: 600,
+    color: "#303030",
+    margin: 0,
+  },
+  userId: {
+    fontSize: 12,
+    color: "#a59f95",
+    margin: 0,
+  },
+  selectedUserContainer: {
+    marginBottom: 24,
+  },
+  selectedUserCard: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    padding: 12,
+    borderRadius: 12,
+    border: "1px solid #303030",
+    backgroundColor: "#e6e2dc",
+  },
+  selectedUserInfo: {
+    flex: 1,
+  },
+  selectedUserName: {
+    fontSize: 14,
+    fontWeight: 600,
+    color: "#303030",
+    margin: 0,
+  },
+  selectedUserId: {
+    fontSize: 12,
+    color: "#a59f95",
+    margin: 0,
+  },
+  clearButton: {
+    marginTop: 8,
+    fontSize: 14,
+    color: "#a59f95",
+    backgroundColor: "transparent",
+    border: "none",
+    cursor: "pointer",
+    textDecoration: "underline",
+  },
+  loadingText: {
+    textAlign: "center",
+    fontSize: 14,
+    color: "#a59f95",
+  },
+  emptyText: {
+    textAlign: "center",
+    fontSize: 14,
+    color: "#a59f95",
+  },
+  changeButton: {
+    marginTop: 4,
+    fontSize: 13,
+    color: "#a59f95",
+    backgroundColor: "transparent",
+    border: "none",
+    cursor: "pointer",
+    textDecoration: "underline",
+    textAlign: "left",
+    padding: 0,
   },
 };
