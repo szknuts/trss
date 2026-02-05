@@ -17,7 +17,16 @@ export default function InvoicePage() {
 
   const requesterId = "0001";
 
-  const isDisabled = !accountNumber || !amount || Number(amount) <= 0;
+  const [amountError, setAmountError] = useState<string | null>(null);
+
+  const isDisabled = !accountNumber || !amount || Number(amount) <= 0 || !!amountError;
+
+  const MAX_MESSAGE_LENGTH = 100;
+
+  const formatYen = (value: string) => {
+    if (!value) return "";
+    return Number(value).toLocaleString();
+  };
 
   const handleCreateLink = async () => {
     try {
@@ -64,29 +73,56 @@ export default function InvoicePage() {
               <input
                 type="text"
                 inputMode="numeric"
-                value={amount}
-                onFocus={() => setIsEditingAmount(true)}
-                onBlur={() => setIsEditingAmount(false)}
+                value={
+                  isEditingAmount
+                    ? amount
+                    : formatYen(amount)
+                } 
+                onFocus={() => {
+                  setIsEditingAmount(true);
+                  setAmountError(null);}
+                }
+                onBlur={() => {
+                  setIsEditingAmount(false);
+                  if (amount !== "" && Number(amount) === 0) {
+                    setAmountError("請求金額は0円より大きくしてください");
+                  }
+                }}
+
                 onChange={(e) => {
-                  const value = e.target.value.replace(/[^0-9]/g, "");
-                  setAmount(value);
+                  const raw = e.target.value.replace(/[^0-9]/g, "");
+                  setAmount(raw);
+                  setAmountError(null);
                 }}
                 style={{
                   ...styles.amountInput,
                   textAlign:
-                    isEditingAmount || amount === "" ? "left" : "center",
+                    isEditingAmount || amount === "" || !!amountError ? "left" : "center",
                 }}
               />
+
               <span style={styles.yen}>円</span>
             </div>
+
+            {/* エラーメッセージ */}
+            {amountError && (
+              <p style={{ color: "#ef4444", fontSize: 14, marginBottom: 16 }}>
+                {amountError}
+              </p>
+            )}
 
             {/* メッセージ */}
             <label style={styles.label}>メッセージ（任意）</label>
             <textarea
               value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              style={styles.textarea}
+              onChange={(e) =>
+                setMessage(e.target.value.slice(0, MAX_MESSAGE_LENGTH))
+              }
+              maxLength={MAX_MESSAGE_LENGTH}
+              placeholder="メッセージを入力 (最大100文字)"
+              className="w-full border border-slate-300 rounded-lg px-4 py-3 text-base resize-none focus:outline-none focus:ring-2 focus:ring-slate-400 min-h-[96px] mb-6"
             />
+
 
             {createdLink && (
               <>

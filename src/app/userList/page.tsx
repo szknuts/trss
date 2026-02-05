@@ -44,42 +44,44 @@ export default function UserList() {
   const myId = userId;
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* ヘッダー */}
-      <div className="sticky top-0 bg-white border-b border-slate-200 px-4 py-3">
-        <h1 className="text-lg font-bold text-slate-800 text-center">
-          送金相手を選択
-        </h1>
-      </div>
+    <div className="flex min-h-screen items-center justify-center bg-[#dcd9d3] px-4 py-10 font-sans text-[#1f1f1f]">
+      <section className="flex h-[932px] w-[430px] max-w-full flex-col items-center rounded-[40px] bg-[#f4f2ed] px-10 pb-16 pt-20 text-center">
+        {/* ヘッダー */}
+        <div className="mb-8">
+          <h1 className="text-xl font-semibold tracking-wide text-[#1f1f1f] text-center">
+            送金相手を選択
+          </h1>
+        </div>
 
-      {/* ユーザーリスト */}
-      <div className="px-4 py-2">
-        {users
-          .filter((u) => u.id !== myId) // 自分を除外
-          .map((u) => {
-            // ★ ここが「フロント側での補正」
-            const iconSrc = u.icon_url
-              ? `/users/${u.icon_url}`
-              : "/users/human1.png";
+        {/* ユーザーリスト */}
+        <div className="px-4 py-2">
+          {users
+            .filter((u) => u.id !== myId) // 自分を除外
+            .map((u) => {
+              // ★ ここが「フロント側での補正」
+              const iconSrc = u.icon_url
+                ? `/users/${u.icon_url}`
+                : "/users/human1.png";
 
-            return (
-              <Link
-                key={u.id}
-                href={`/transfer/${u.id}`}
-                className="bg-white rounded-lg shadow-sm active:bg-slate-100 transition-colors p-3 flex items-center gap-3 border border-slate-200 mb-2"
-              >
-                <img
-                  src={iconSrc}
-                  alt={u.name}
-                  className="w-11 h-11 rounded-full object-cover shrink-0"
-                />
-                <p className="font-medium text-slate-800 text-base">
-                  {u.name}
-                </p>
-              </Link>
-            );
-          })}
-      </div>
+              return (
+                <Link
+                  key={u.id}
+                  href={`/transfer/${u.id}`}
+                  className="bg-white rounded-lg shadow-sm active:bg-slate-100 transition-colors p-3 flex items-center gap-3 border border-slate-200 mb-2"
+                >
+                  <img
+                    src={iconSrc}
+                    alt={u.name}
+                    className="w-11 h-11 rounded-full object-cover shrink-0"
+                  />
+                  <p className="font-medium text-slate-800 text-base">
+                    {u.name}
+                  </p>
+                </Link>
+              );
+            })}
+        </div>
+      </section>
     </div>
   );
 }
