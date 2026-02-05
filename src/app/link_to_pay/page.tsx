@@ -29,7 +29,7 @@ export default function PayPage() {
 
     if (!userId) {
       const redirectTo = encodeURIComponent(
-        window.location.pathname + window.location.search
+        window.location.pathname + window.location.search,
       );
       router.replace(`/login?redirect=${redirectTo}`);
       return;
@@ -59,19 +59,38 @@ export default function PayPage() {
     fetchData();
   }, [userId, paymentId, router]);
 
-  if (loading || !me || !payment) return null;
+  console.log("Debug:", { loading, me, payment, userId, paymentId });
 
-  const canPay =
-    payment.state === "pending" &&
-    me.balance >= payment.amount;
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        読み込み中...
+      </div>
+    );
+  }
+
+  if (!me || !payment) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        データの取得に失敗しました
+      </div>
+    );
+  }
+
+  // payer_idが設定されていて、かつ自分と違う場合はブロック
+  // payer_idがnull = 誰でも支払える
+  // if (payment.payer_id !== null && payment.payer_id !== userId) {
+  //   alert("この請求はあなた宛てではありません");
+  //   router.replace("/");
+  //   return null;
+  // }
+
+  const canPay = payment.state === "pending" && me.balance >= payment.amount;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#dcd9d3] px-4 py-10">
       <section className="flex h-[932px] w-[430px] flex-col items-center rounded-[40px] bg-[#f4f2ed] px-10 pt-20 text-center">
-
-        <h1 className="text-xl font-semibold">
-          お支払い内容の確認
-        </h1>
+        <h1 className="text-xl font-semibold">お支払い内容の確認</h1>
 
         {/* 請求額 */}
         <div className="mt-10 w-full max-w-xs rounded-[26px] border bg-white px-6 py-8">
@@ -83,9 +102,7 @@ export default function PayPage() {
 
         {/* メッセージ */}
         {payment.message && (
-          <p className="mt-4 text-sm text-slate-600">
-            {payment.message}
-          </p>
+          <p className="mt-4 text-sm text-slate-600">{payment.message}</p>
         )}
 
         {/* 残高 */}
@@ -95,9 +112,7 @@ export default function PayPage() {
 
         {/* 状態 */}
         {canPay ? (
-          <p className="mt-4 text-green-600 text-sm">
-            お支払い可能です
-          </p>
+          <p className="mt-4 text-green-600 text-sm">お支払い可能です</p>
         ) : (
           <p className="mt-4 text-red-600 text-sm">
             {payment.state === "paid"
@@ -122,7 +137,6 @@ export default function PayPage() {
         <Link href="/" className="mt-6 text-sm underline">
           トップへ戻る
         </Link>
-
       </section>
     </div>
   );
