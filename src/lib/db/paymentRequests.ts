@@ -73,7 +73,10 @@ export async function getAllPaymentRequests(): Promise<PaymentRequest[]> {
     console.error("Error fetching payment requests:", error);
     throw new Error(`請求の取得に失敗しました: ${error.message}`);
   }
-  return data || [];
+
+  const scannedData = await scanPaymentRequests(data || []);
+
+  return scannedData;
 }
 
 /**
@@ -93,7 +96,10 @@ export async function getPaymentRequest(id: string): Promise<PaymentRequest> {
     throw new Error(`請求の取得に失敗しました: ${error.message}`);
   }
 
-  return data;
+  // .single()はオブジェクトを返すので、配列に包んでスキャン
+  const scannedData = await scanPaymentRequests([data]);
+
+  return scannedData[0];
 }
 
 /**
@@ -136,7 +142,9 @@ export async function getPaymentRequestsByPayerId(
     throw new Error(`請求の取得に失敗しました: ${error.message}`);
   }
 
-  return data || [];
+  const scannedData = await scanPaymentRequests(data || []);
+
+  return scannedData;
 }
 
 // 請求の支払いに関する関数
@@ -180,6 +188,45 @@ export async function payPaymentRequest(
   }
 
   await executeTransfer(payerId, data.requester_id, data.amount);
+
+  return data;
+}
+
+/**
+ * @description 請求を却下する
+ * @param id - 請求ID
+ * @returns 却下された請求
+ */
+export async function rejectPaymentRequest(
+  id: PaymentRequest["id"],
+): Promise<PaymentRequest> {
+  const paymentRequest = await getPaymentRequest(id);
+
+  if (!paymentRequest) throw new Error("請求が存在しません");
+
+  if (paymentRequest.state === "paid")
+    throw new Error("請求は既に支払われています");
+
+  if (paymentRequest.state === "rejected")
+    throw new Error("請求は既に却下されています");
+
+  if (paymentRequest.state === "overdue")
+    throw new Error("請求は既に期限切れです");
+
+  if (paymentRequest.payer_id === null)
+    throw new Error("支払うユーザーが指定されていません");
+
+  const { data, error } = await supabase
+    .from(TABLE_NAME)
+    .update({ state: "rejected" })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error rejecting payment request:", error);
+    throw new Error(`請求の却下に失敗しました: ${error.message}`);
+  }
 
   return data;
 }
