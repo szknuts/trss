@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getPaymentRequestsByPayerId } from "@/lib/db/paymentRequests";
+import {
+  getPaymentRequestsByPayerId,
+  scanPaymentRequests,
+} from "@/lib/db/paymentRequests";
 import { getUserById } from "@/lib/db/users";
 import { useUser } from "@/context/UserContext";
 import type { PaymentRequest, User } from "@/lib/db/database.type";
@@ -24,7 +27,9 @@ export default function UnpaidListPage() {
     async function fetchData() {
       try {
         const requests = await getPaymentRequestsByPayerId(userId!);
-        const unpaid = requests.filter((req) => req.state !== "paid");
+        // 期限切れスキャンを実行してからフィルタ
+        const scanned = await scanPaymentRequests(requests);
+        const unpaid = scanned.filter((req) => req.state !== "paid");
         setUnpaidRequests(unpaid);
 
         // 請求者の情報を取得
@@ -157,10 +162,32 @@ function UnpaidCard({
           <span className="text-xl font-semibold text-red-600">
             {request.amount}円
           </span>
-          <span className="inline-block rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-semibold text-yellow-700">
-            {request.state === "rejected" ? "却下" : "待機中"}
-          </span>
+          {request.state === "overdue" ? (
+            <span className="inline-block rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-semibold text-red-700">
+              期限切れ
+            </span>
+          ) : request.state === "rejected" ? (
+            <span className="inline-block rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-700">
+              却下
+            </span>
+          ) : (
+            <span className="inline-block rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-semibold text-yellow-700">
+              待機中
+            </span>
+          )}
         </div>
+      </div>
+
+      {/* 支払期限 */}
+      <div className="mb-2 flex items-center gap-1">
+        <span className="text-xs text-[#a59f95]">支払期限：</span>
+        <span
+          className={`text-xs font-semibold ${
+            request.state === "overdue" ? "text-red-600" : "text-[#303030]"
+          }`}
+        >
+          {formatDate(request.due_date)}
+        </span>
       </div>
 
       {/* メッセージ */}

@@ -5,7 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useUser } from "@/context/UserContext";
 import { getUserById } from "@/lib/db/users";
-import { getPaymentRequest } from "@/lib/db/paymentRequests";
+import {
+  getPaymentRequest,
+  payPaymentRequest,
+} from "@/lib/db/paymentRequests";
 import type { User, PaymentRequest } from "@/lib/db/database.type";
 
 export default function PayPage() {
@@ -18,6 +21,7 @@ export default function PayPage() {
   const [me, setMe] = useState<User | null>(null);
   const [payment, setPayment] = useState<PaymentRequest | null>(null);
   const [loading, setLoading] = useState(true);
+  const [paying, setPaying] = useState(false);
 
   // ログインチェック + データ取得
   useEffect(() => {
@@ -107,17 +111,29 @@ export default function PayPage() {
         )}
 
         {/* 支払い */}
-        <Link
-          href={canPay ? `/link_to_pay/complete?paymentId=${payment.id}` : "#"}
+        <button
+          disabled={!canPay || paying}
+          onClick={async () => {
+            if (!canPay || paying || !userId) return;
+            setPaying(true);
+            try {
+              await payPaymentRequest(payment.id, userId);
+              router.push(`/link_to_pay/complete?paymentId=${payment.id}`);
+            } catch (e) {
+              console.error(e);
+              alert("支払いに失敗しました");
+              setPaying(false);
+            }
+          }}
           className={`mt-10 w-full max-w-xs rounded-full py-4 text-center text-white transition
             ${
-              canPay
+              canPay && !paying
                 ? "bg-[#303030] hover:opacity-90"
-                : "bg-[#aaa] pointer-events-none"
+                : "bg-[#aaa] cursor-not-allowed"
             }`}
         >
-          支払う
-        </Link>
+          {paying ? "処理中..." : "支払う"}
+        </button>
 
         <Link href="/" className="mt-6 text-sm underline">
           トップへ戻る
